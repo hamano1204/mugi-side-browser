@@ -286,6 +286,16 @@ namespace MugiSideBrowser
             }
         }
 
+        private void BookmarkScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (sender is ScrollViewer scrollViewer)
+            {
+                if (e.Delta > 0) scrollViewer.LineLeft();
+                else scrollViewer.LineRight();
+                e.Handled = true;
+            }
+        }
+
         private void UrlTextBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
