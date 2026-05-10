@@ -76,6 +76,11 @@ namespace MugiSideBrowser
             this.Close();
         }
 
+        private void Minimize_Click(object sender, RoutedEventArgs e)
+        {
+            this.WindowState = WindowState.Minimized;
+        }
+
         private void UrlTextBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
