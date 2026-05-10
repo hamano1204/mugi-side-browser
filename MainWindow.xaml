@@ -33,10 +33,17 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <Style x:Key="BookmarkButtonStyle" TargetType="Button" BasedOn="{StaticResource ToolbarButtonStyle}">
+            <Setter Property="Padding" Value="6"/>
+            <Setter Property="Margin" Value="0,0,2,0"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
     </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -63,7 +70,7 @@
         <Border Grid.Row="1" Background="#252525" Padding="8,4" BorderBrush="#333" BorderThickness="0,1">
             <Grid>
                 <TextBox x:Name="UrlTextBox" Background="#333" Foreground="White" BorderThickness="1" BorderBrush="#444"
-                         Padding="8,4" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown"
+                         Padding="8,4,32,4" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown"
                          FontSize="13" SelectionBrush="#0078D4">
                     <TextBox.Resources>
                         <Style TargetType="{x:Type Border}">
@@ -71,11 +78,51 @@
                         </Style>
                     </TextBox.Resources>
                 </TextBox>
+                <Button Content="&#xE109;" Click="Star_Click" Style="{StaticResource ToolbarButtonStyle}" 
+                        HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" Margin="0,0,4,0"/>
             </Grid>
         </Border>
 
+        <!-- Bookmark Bar -->
+        <Border Grid.Row="2" Background="#1E1E1E" Padding="4,2" BorderBrush="#333" BorderThickness="0,0,0,1">
+            <ItemsControl x:Name="BookmarkList">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Cursor="Hand" Padding="6" CornerRadius="4" Margin="0,0,2,0"
+                                ToolTip="{Binding Title}"
+                                PreviewMouseLeftButtonDown="Bookmark_PreviewMouseLeftButtonDown" 
+                                MouseMove="Bookmark_MouseMove"
+                                MouseLeftButtonUp="Bookmark_MouseLeftButtonUp"
+                                AllowDrop="True" Drop="Bookmark_Drop" DragOver="Bookmark_DragOver">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#3D3D3D"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Border.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="削除" Click="DeleteBookmark_Click"/>
+                                </ContextMenu>
+                            </Border.ContextMenu>
+                            <Image Source="{Binding FaviconUrl}" Width="16" Height="16" IsHitTestVisible="False"/>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+
         <!-- Browser View -->
-        <wv2:WebView2 x:Name="webView" Grid.Row="2" Margin="0"/>
+        <wv2:WebView2 x:Name="webView" Grid.Row="3" Margin="0"/>
     </Grid>
 
 </Window>
