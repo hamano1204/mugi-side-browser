@@ -1,0 +1,63 @@
+using System;
+using System.Runtime.InteropServices;
+
+namespace MugiSideBrowser
+{
+    internal static class NativeMethods
+    {
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct APPBARDATA
+        {
+            public int cbSize;
+            public IntPtr hWnd;
+            public int uCallbackMessage;
+            public int uEdge;
+            public RECT rc;
+            public IntPtr lParam;
+        }
+
+        public enum AppBarMessages
+        {
+            New = 0x00,
+            Remove = 0x01,
+            QueryPos = 0x02,
+            SetPos = 0x03,
+            GetState = 0x04,
+            GetTaskbarPos = 0x05,
+            Activate = 0x06,
+            GetFreeRect = 0x07,
+            SetLParam = 0x08,
+            WindowPosChanged = 0x09,
+            SetState = 0x0a
+        }
+
+        public enum AppBarEdges
+        {
+            Left = 0,
+            Top = 1,
+            Right = 2,
+            Bottom = 3
+        }
+
+        [DllImport("shell32.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern uint SHAppBarMessage(int dwMessage, ref APPBARDATA pData);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+        [DllImport("user32.dll")]
+        public static extern int MoveWindow(IntPtr hWnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
+
+        [DllImport("user32.dll")]
+        public static extern uint RegisterWindowMessage(string lpString);
+    }
+}
