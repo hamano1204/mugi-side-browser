@@ -55,7 +55,8 @@
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                     <Button Content="" Click="Back_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0"/>
                     <Button Content="" Click="Forward_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0"/>
-                    <Button Content="" Click="Reload_Click" Style="{StaticResource ToolbarButtonStyle}"/>
+                    <Button Content="" Click="Reload_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0"/>
+                    <Button x:Name="SplitButton" Content="" Click="SplitView_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="上下分割を切り替え"/>
                 </StackPanel>
                 
                 <Button Content="" DockPanel.Dock="Right" Click="Close_Click" Style="{StaticResource ToolbarButtonStyle}" Foreground="#FF6B6B"/>
@@ -114,15 +115,28 @@
                                     <MenuItem Header="削除" Click="DeleteBookmark_Click"/>
                                 </ContextMenu>
                             </Border.ContextMenu>
-                            <Image Source="{Binding FaviconUrl}" Width="16" Height="16" IsHitTestVisible="False"/>
+                            <Image Source="{Binding DisplayFaviconUrl}" Width="16" Height="16" IsHitTestVisible="False"/>
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </Border>
 
-        <!-- Browser View -->
-        <wv2:WebView2 x:Name="webView" Grid.Row="3" Margin="0"/>
+        <!-- Browser Area -->
+        <Grid Grid.Row="3">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" x:Name="TopRow"/>
+                <RowDefinition Height="Auto" x:Name="SplitterRow"/>
+                <RowDefinition Height="0" x:Name="BottomRow"/>
+            </Grid.RowDefinitions>
+
+            <wv2:WebView2 x:Name="webView" Grid.Row="0" Margin="0" GotFocus="WebView_GotFocus"/>
+
+            <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="#333" 
+                          Visibility="Collapsed" x:Name="VerticalSplitter" ShowsPreview="True"/>
+
+            <wv2:WebView2 x:Name="webViewBottom" Grid.Row="2" Margin="0" Visibility="Collapsed" GotFocus="WebView_GotFocus"/>
+        </Grid>
     </Grid>
 
 </Window>
