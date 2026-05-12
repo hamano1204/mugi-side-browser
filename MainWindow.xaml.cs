@@ -189,11 +189,20 @@ namespace MugiSideBrowser
                 AutoHideMenuItem.IsChecked = false;
                 NormalWindowMenuItem.IsChecked = false;
                 StopAutoHideTimer();
-
-                // 重要：自分自身との衝突を防ぐため、一度画面外へ飛ばしてから登録する
-                this.Left = -30000;
-                
                 _appBarHelper.Register();
+                this.Topmost = true;
+                
+                // 上下位置と高さをリセット
+                var helper = new WindowInteropHelper(this);
+                IntPtr hMonitor = NativeMethods.MonitorFromWindow(helper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
+                var mi = new NativeMethods.MONITORINFO();
+                mi.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
+                if (NativeMethods.GetMonitorInfo(hMonitor, ref mi))
+                {
+                    double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+                    this.Top = mi.rcMonitor.Top / dpi;
+                    this.Height = (mi.rcMonitor.Bottom - mi.rcMonitor.Top) / dpi;
+                }
             }
             else if (sender == NormalWindowMenuItem)
             {
@@ -220,9 +229,12 @@ namespace MugiSideBrowser
                 AutoHideMenuItem.IsChecked = true;
                 NormalWindowMenuItem.IsChecked = false;
                 _appBarHelper.Unregister();
+                this.Topmost = true;
                 StartAutoHideTimer();
             }
         }
+
+
 
         private void TitleBar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
@@ -369,6 +381,10 @@ namespace MugiSideBrowser
             {
                 targetLeft = mi.rcMonitor.Left / dpi;
             }
+
+            // ホットコーナーモードでは上下を画面いっぱいにリセットする
+            this.Top = mi.rcMonitor.Top / dpi;
+            this.Height = (mi.rcMonitor.Bottom - mi.rcMonitor.Top) / dpi;
 
             var duration = TimeSpan.FromMilliseconds(200);
             var ease = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut };
