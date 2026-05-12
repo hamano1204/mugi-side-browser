@@ -52,7 +52,7 @@ namespace MugiSideBrowser
         public static extern uint SHAppBarMessage(int dwMessage, ref APPBARDATA pData);
 
         [DllImport("user32.dll", SetLastError = true)]
-        public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+        public static extern IntPtr FindWindow(string lpClassName, string? lpWindowName);
 
         [DllImport("user32.dll")]
         public static extern int MoveWindow(IntPtr hWnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
@@ -85,5 +85,8 @@ namespace MugiSideBrowser
 
         public const int SM_CXSCREEN = 0;
         public const int SM_CYSCREEN = 1;
+
+        [DllImport("user32.dll")]
+        public static extern bool GetCursorPos(ref System.Drawing.Point lpPoint);
     }
 }

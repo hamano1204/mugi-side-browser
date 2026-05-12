@@ -24,6 +24,13 @@ namespace MugiSideBrowser
         private string? _defaultUserAgent = null;
         private const string MobileUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1";
         private bool _isFakeMinimized = false;
+        private enum DisplayMode { AppBar, AutoHide }
+        private DisplayMode _currentMode = DisplayMode.AppBar;
+        private System.Windows.Threading.DispatcherTimer? _mouseTimer;
+        private bool _isSlidOut = false;
+        private const double FullWidth = 400;
+        private const double TriggerWidth = 2;
+
 
 
 
@@ -68,6 +75,14 @@ namespace MugiSideBrowser
             if (_isFakeMinimized) return;
             
             _isFakeMinimized = true;
+
+            // アニメーションを停止（これをしないとLeftの上書きが効かない）
+            this.BeginAnimation(Window.LeftProperty, null);
+            this.BeginAnimation(Window.WidthProperty, null);
+
+            // 自動隠しタイマーを停止
+            _mouseTimer?.Stop();
+            
             _appBarHelper.Unregister();
 
             // 状態をNormalに戻してから画面外へ飛ばす
@@ -75,7 +90,6 @@ namespace MugiSideBrowser
             this.Left = -30000;
 
             // 重要：自分自身のアクティブ状態を解除する。
-            // これをしないと、次にタスクバーをクリックした時に Activated イベントが発生しない。
             IntPtr taskbarHwnd = NativeMethods.FindWindow("Shell_TrayWnd", null);
             if (taskbarHwnd != IntPtr.Zero)
             {
@@ -83,15 +97,27 @@ namespace MugiSideBrowser
             }
         }
 
+
         private void RestoreFromFakeMinimize()
         {
             if (!_isFakeMinimized) return;
 
             _isFakeMinimized = false;
             
-            // Register内でSetPositionが呼ばれ、正しい位置（右端）に戻る
-            _appBarHelper.Register();
+            if (_currentMode == DisplayMode.AppBar)
+            {
+                // AppBarモードなら予約して右端へ
+                _appBarHelper.Register();
+            }
+            else
+            {
+                // 自動隠しモードなら予約せず「隠れた状態」として復帰
+                _isSlidOut = true; // SlideOut()を確実に動かすため
+                SlideOut(); 
+                StartAutoHideTimer();
+            }
         }
+
 
 
         private void LoadBookmarks()
@@ -119,6 +145,152 @@ namespace MugiSideBrowser
                 element.ContextMenu.IsOpen = true;
             }
         }
+
+        private void DisplayMode_Click(object sender, RoutedEventArgs e)
+        {
+            // モード切替前にアニメーションを完全に停止させる
+            this.BeginAnimation(Window.LeftProperty, null);
+            this.BeginAnimation(Window.WidthProperty, null);
+
+            if (sender == AlwaysVisibleMenuItem)
+            {
+                _currentMode = DisplayMode.AppBar;
+                AlwaysVisibleMenuItem.IsChecked = true;
+                AutoHideMenuItem.IsChecked = false;
+                StopAutoHideTimer();
+
+                // 重要：自分自身との衝突を防ぐため、一度画面外へ飛ばしてから登録する
+                this.Left = -30000;
+                
+                _appBarHelper.Register();
+            }
+            else
+            {
+                _currentMode = DisplayMode.AutoHide;
+                AlwaysVisibleMenuItem.IsChecked = false;
+                AutoHideMenuItem.IsChecked = true;
+                _appBarHelper.Unregister();
+                StartAutoHideTimer();
+            }
+        }
+
+        private void StartAutoHideTimer()
+        {
+            if (_mouseTimer == null)
+            {
+                _mouseTimer = new System.Windows.Threading.DispatcherTimer();
+                _mouseTimer.Interval = TimeSpan.FromMilliseconds(100);
+                _mouseTimer.Tick += MouseTimer_Tick;
+            }
+            _mouseTimer.Start();
+            
+            // 確実に隠すために、現在は「出ている」ことにしてから SlideOut を呼ぶ
+            _isSlidOut = true;
+            SlideOut();
+        }
+
+        private void StopAutoHideTimer()
+        {
+            _mouseTimer?.Stop();
+            // 常時表示に戻す際は元の幅に戻す
+            this.Width = FullWidth;
+        }
+
+        private void MouseTimer_Tick(object? sender, EventArgs e)
+        {
+            if (_currentMode != DisplayMode.AutoHide || _isFakeMinimized) return;
+
+            // マウスの物理座標を取得
+            var point = new System.Drawing.Point();
+            NativeMethods.GetCursorPos(ref point);
+
+            // 現在のモニター情報を取得
+            var helper = new WindowInteropHelper(this);
+            IntPtr hMonitor = NativeMethods.MonitorFromWindow(helper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
+            var mi = new NativeMethods.MONITORINFO();
+            mi.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
+            if (!NativeMethods.GetMonitorInfo(hMonitor, ref mi)) return;
+
+            double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+            bool isMouseInTriggerZone = false;
+            bool isMouseInWindow = false;
+
+            if (_appBarHelper.Edge == NativeMethods.AppBarEdges.Right)
+            {
+                // 右端のトリガーゾーン（端から5ピクセル以内）
+                isMouseInTriggerZone = (point.X >= mi.rcMonitor.Right - 5 && point.Y >= mi.rcMonitor.Top && point.Y <= mi.rcMonitor.Bottom);
+                // ウィンドウ内かチェック
+                isMouseInWindow = (point.X >= mi.rcMonitor.Right - (FullWidth * dpi) && point.X <= mi.rcMonitor.Right && 
+                                   point.Y >= mi.rcMonitor.Top && point.Y <= mi.rcMonitor.Bottom);
+            }
+            else
+            {
+                // 左端のトリガーゾーン
+                isMouseInTriggerZone = (point.X <= mi.rcMonitor.Left + 5 && point.Y >= mi.rcMonitor.Top && point.Y <= mi.rcMonitor.Bottom);
+                // ウィンドウ内かチェック
+                isMouseInWindow = (point.X >= mi.rcMonitor.Left && point.X <= mi.rcMonitor.Left + (FullWidth * dpi) && 
+                                   point.Y >= mi.rcMonitor.Top && point.Y <= mi.rcMonitor.Bottom);
+            }
+
+            if (isMouseInTriggerZone && !_isSlidOut)
+            {
+                SlideIn();
+            }
+            else if (!isMouseInWindow && _isSlidOut)
+            {
+                // メニューやコンテキストメニューが開いている間は閉じない
+                bool isMenuVisible = (LeftDockMenuItem.Parent is FrameworkElement parent && parent.IsVisible);
+                if (!MonitorSelectMenuItem.IsSubmenuOpen && !isMenuVisible)
+                {
+                     SlideOut();
+                }
+            }
+        }
+
+        private void SlideIn()
+        {
+            if (_isSlidOut) return;
+            _isSlidOut = true;
+            this.Topmost = true;
+            AnimateWindow(FullWidth);
+        }
+
+        private void SlideOut()
+        {
+            if (!_isSlidOut) return;
+            _isSlidOut = false;
+            AnimateWindow(TriggerWidth);
+        }
+
+        private void AnimateWindow(double targetWidth)
+        {
+            double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+            var helper = new WindowInteropHelper(this);
+            IntPtr hMonitor = NativeMethods.MonitorFromWindow(helper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
+            var mi = new NativeMethods.MONITORINFO();
+            mi.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
+            if (!NativeMethods.GetMonitorInfo(hMonitor, ref mi)) return;
+
+            double targetLeft;
+            if (_appBarHelper.Edge == NativeMethods.AppBarEdges.Right)
+            {
+                targetLeft = (mi.rcMonitor.Right / dpi) - targetWidth;
+            }
+            else
+            {
+                targetLeft = mi.rcMonitor.Left / dpi;
+            }
+
+            var duration = TimeSpan.FromMilliseconds(200);
+            var ease = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut };
+
+            var widthAnim = new System.Windows.Media.Animation.DoubleAnimation(targetWidth, duration) { EasingFunction = ease };
+            var leftAnim = new System.Windows.Media.Animation.DoubleAnimation(targetLeft, duration) { EasingFunction = ease };
+
+            this.BeginAnimation(Window.WidthProperty, widthAnim);
+            this.BeginAnimation(Window.LeftProperty, leftAnim);
+        }
+
 
         private void Side_Click(object sender, RoutedEventArgs e)
         {

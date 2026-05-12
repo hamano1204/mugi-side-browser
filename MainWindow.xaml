@@ -88,6 +88,14 @@
                                 </MenuItem.Icon>
                             </MenuItem>
                             <Separator/>
+                            <MenuItem Header="表示モード">
+                                <MenuItem.Icon>
+                                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                </MenuItem.Icon>
+                                <MenuItem x:Name="AlwaysVisibleMenuItem" Header="常時表示 (AppBar)" Click="DisplayMode_Click" IsChecked="True"/>
+                                <MenuItem x:Name="AutoHideMenuItem" Header="自動的に隠す (Hot Corner)" Click="DisplayMode_Click"/>
+                            </MenuItem>
+                            <Separator/>
                             <MenuItem Header="配置設定">
                                 <MenuItem.Icon>
                                     <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
