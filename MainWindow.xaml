@@ -88,6 +88,20 @@
                                 </MenuItem.Icon>
                             </MenuItem>
                             <Separator/>
+                            <MenuItem Header="配置設定">
+                                <MenuItem.Icon>
+                                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                </MenuItem.Icon>
+                                <MenuItem x:Name="LeftDockMenuItem" Header="左側に表示" Click="Side_Click"/>
+                                <MenuItem x:Name="RightDockMenuItem" Header="右側に表示" Click="Side_Click" IsChecked="True"/>
+                            </MenuItem>
+                            <MenuItem x:Name="MonitorSelectMenuItem" Header="モニター移動">
+                                <MenuItem.Icon>
+                                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                </MenuItem.Icon>
+                                <!-- Dynamic content here -->
+                            </MenuItem>
+                            <Separator/>
                             <MenuItem Header="このページをブックマーク" Click="Star_Click">
                                 <MenuItem.Icon>
                                     <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>

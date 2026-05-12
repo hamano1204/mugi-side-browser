@@ -10,6 +10,8 @@ namespace MugiSideBrowser
         private readonly Window _window;
         private bool _isRegistered;
         private readonly int _uCallbackMessage;
+        public NativeMethods.AppBarEdges Edge { get; set; } = NativeMethods.AppBarEdges.Right;
+
 
         public AppBarHelper(Window window)
         {
@@ -64,24 +66,38 @@ namespace MugiSideBrowser
             var helper = new WindowInteropHelper(_window);
             double dpi = GetDpiScale();
 
+            // ウィンドウが現在いるモニター、または最適なモニターを取得
+            IntPtr hMonitor = NativeMethods.MonitorFromWindow(helper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
+            var mi = new NativeMethods.MONITORINFO();
+            mi.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
+            
+            if (!NativeMethods.GetMonitorInfo(hMonitor, ref mi)) return;
+
             var data = new NativeMethods.APPBARDATA
             {
                 cbSize = Marshal.SizeOf(typeof(NativeMethods.APPBARDATA)),
                 hWnd = helper.Handle,
-                uEdge = (int)NativeMethods.AppBarEdges.Right
+                uEdge = (int)Edge
             };
 
-            // 目標とする幅（論理ピクセルから物理ピクセルへ）
+            // 目標とする幅（ピクセル単位）
             int width = (int)(_window.Width * dpi);
             
-            // 物理ピクセル単位での画面解像度を取得
-            int screenWidth = NativeMethods.GetSystemMetrics(NativeMethods.SM_CXSCREEN);
-            int screenHeight = NativeMethods.GetSystemMetrics(NativeMethods.SM_CYSCREEN);
-            
-            data.rc.Top = 0;
-            data.rc.Bottom = screenHeight;
-            data.rc.Right = screenWidth;
-            data.rc.Left = screenWidth - width;
+            // 選択されたモニターの矩形（rcMonitor = 全体, rcWork = タスクバー等を除いた領域）
+            // AppBarは画面全体の端に予約するため rcMonitor を基準にする
+            data.rc.Top = mi.rcMonitor.Top;
+            data.rc.Bottom = mi.rcMonitor.Bottom;
+
+            if (Edge == NativeMethods.AppBarEdges.Left)
+            {
+                data.rc.Left = mi.rcMonitor.Left;
+                data.rc.Right = mi.rcMonitor.Left + width;
+            }
+            else
+            {
+                data.rc.Right = mi.rcMonitor.Right;
+                data.rc.Left = mi.rcMonitor.Right - width;
+            }
 
             // 1. 領域の問い合わせ
             NativeMethods.SHAppBarMessage((int)NativeMethods.AppBarMessages.QueryPos, ref data);
@@ -92,7 +108,7 @@ namespace MugiSideBrowser
             // 3. Win32 APIによるウィンドウ移動
             NativeMethods.MoveWindow(data.hWnd, data.rc.Left, data.rc.Top, data.rc.Right - data.rc.Left, data.rc.Bottom - data.rc.Top, true);
 
-            // 4. WPFプロパティへの反映（復帰後のWPFによる自動位置復元を上書きする）
+            // 4. WPFプロパティへの反映
             _window.Left = data.rc.Left / dpi;
             _window.Top = data.rc.Top / dpi;
             _window.Width = (data.rc.Right - data.rc.Left) / dpi;

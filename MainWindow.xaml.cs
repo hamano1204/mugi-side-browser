@@ -112,9 +112,80 @@ namespace MugiSideBrowser
         {
             if (sender is FrameworkElement element)
             {
+                RefreshMonitorMenu();
                 element.ContextMenu.IsOpen = true;
             }
         }
+
+        private void Side_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender == LeftDockMenuItem)
+            {
+                _appBarHelper.Edge = NativeMethods.AppBarEdges.Left;
+                LeftDockMenuItem.IsChecked = true;
+                RightDockMenuItem.IsChecked = false;
+            }
+            else
+            {
+                _appBarHelper.Edge = NativeMethods.AppBarEdges.Right;
+                LeftDockMenuItem.IsChecked = false;
+                RightDockMenuItem.IsChecked = true;
+            }
+            _appBarHelper.SetPosition();
+        }
+
+        private void RefreshMonitorMenu()
+        {
+            MonitorSelectMenuItem.Items.Clear();
+            
+            // 全モニターを列挙してメニューに追加
+            int index = 1;
+            foreach (var screen in System.Windows.Forms.Screen.AllScreens)
+            {
+                var mi = new MenuItem
+                {
+                    Header = $"モニター {index} {(screen.Primary ? "(メイン)" : "")}",
+                    Tag = screen,
+                    IsChecked = IsWindowOnScreen(screen)
+                };
+                mi.Click += Monitor_Click;
+                MonitorSelectMenuItem.Items.Add(mi);
+                index++;
+            }
+        }
+
+        private bool IsWindowOnScreen(System.Windows.Forms.Screen screen)
+        {
+            var helper = new WindowInteropHelper(this);
+            IntPtr hMonitor = NativeMethods.MonitorFromWindow(helper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
+            
+            var mi = new NativeMethods.MONITORINFO();
+            mi.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
+            if (NativeMethods.GetMonitorInfo(hMonitor, ref mi))
+            {
+                // 物理座標で比較
+                return mi.rcMonitor.Left == screen.Bounds.Left && mi.rcMonitor.Top == screen.Bounds.Top;
+            }
+            return false;
+        }
+
+        private void Monitor_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem mi && mi.Tag is System.Windows.Forms.Screen screen)
+            {
+                // 一旦解除
+                _appBarHelper.Unregister();
+
+                // ウィンドウを対象モニターの作業領域内に移動（AppBar予約前の一時的な配置）
+                double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+                this.Left = screen.WorkingArea.Left / dpi;
+                this.Top = screen.WorkingArea.Top / dpi;
+
+                // 再登録（新しいモニターの座標でSetPositionが走る）
+                _appBarHelper.Register();
+            }
+        }
+
 
         private void UserAgent_Click(object sender, RoutedEventArgs e)
         {
