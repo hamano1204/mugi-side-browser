@@ -59,5 +59,14 @@ namespace MugiSideBrowser
 
         [DllImport("user32.dll")]
         public static extern uint RegisterWindowMessage(string lpString);
+
+        [DllImport("user32.dll")]
+        public static extern int GetSystemMetrics(int nIndex);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        public const int SM_CXSCREEN = 0;
+        public const int SM_CYSCREEN = 1;
     }
 }

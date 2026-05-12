@@ -52,26 +52,53 @@
         <!-- Custom Title Bar / Toolbar -->
         <Border Grid.Row="0" Background="#2D2D2D" Padding="8,4">
             <DockPanel>
+                <!-- Left: Navigation -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                    <Button Content="" Click="Back_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0"/>
-                    <Button Content="" Click="Forward_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0"/>
-                    <Button Content="" Click="Reload_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0"/>
-                    <Button x:Name="SplitButton" Content="" Click="SplitView_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="上下分割を切り替え"/>
+                    <Button Content="" Click="Back_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="戻る"/>
+                    <Button Content="" Click="Forward_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="進む"/>
+                    <Button Content="" Click="Reload_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="更新"/>
                 </StackPanel>
                 
-                <Button Content="" DockPanel.Dock="Right" Click="Close_Click" Style="{StaticResource ToolbarButtonStyle}" Foreground="#FF6B6B"/>
-                <Button Content="" DockPanel.Dock="Right" Click="Minimize_Click" Style="{StaticResource ToolbarButtonStyle}"/>
-                
-                <TextBlock Text="MugiSideBrowser" VerticalAlignment="Center" HorizontalAlignment="Center" 
-                           Foreground="#E0E0E0" FontWeight="SemiBold" FontSize="12"/>
+                <!-- Right: Window Controls -->
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                    <Button Content="" Click="Minimize_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="最小化"/>
+                    <Button Content="" Click="Close_Click" Style="{StaticResource ToolbarButtonStyle}" Foreground="#FF6B6B" ToolTip="閉じる"/>
+                </StackPanel>
+
+                <!-- Center: Spacer -->
+                <Grid/>
             </DockPanel>
         </Border>
 
-        <!-- Address Bar -->
+        <!-- Address Bar & Tools -->
         <Border Grid.Row="1" Background="#252525" Padding="8,4" BorderBrush="#333" BorderThickness="0,1">
-            <Grid>
+            <DockPanel LastChildFill="True">
+                <Button Content="" DockPanel.Dock="Right" Style="{StaticResource ToolbarButtonStyle}" 
+                        Click="Tools_Click" ToolTip="ツールメニュー" Margin="4,0,0,0">
+                    <Button.ContextMenu>
+                        <ContextMenu x:Name="ToolsMenu">
+                            <MenuItem x:Name="SplitMenuItem" Header="上下分割を切り替え" Click="SplitView_Click">
+                                <MenuItem.Icon>
+                                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem x:Name="UserAgentMenuItem" Header="モバイル表示に切替" Click="UserAgent_Click">
+                                <MenuItem.Icon>
+                                    <TextBlock x:Name="UserAgentMenuIcon" Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator/>
+                            <MenuItem Header="このページをブックマーク" Click="Star_Click">
+                                <MenuItem.Icon>
+                                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
+                
                 <TextBox x:Name="UrlTextBox" Background="#333" Foreground="White" BorderThickness="1" BorderBrush="#444"
-                         Padding="8,4,32,4" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown"
+                         Padding="8,4" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown"
                          FontSize="13" SelectionBrush="#0078D4">
                     <TextBox.Resources>
                         <Style TargetType="{x:Type Border}">
@@ -79,14 +106,14 @@
                         </Style>
                     </TextBox.Resources>
                 </TextBox>
-                <Button Content="&#xE109;" Click="Star_Click" Style="{StaticResource ToolbarButtonStyle}" 
-                        HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" Margin="0,0,4,0"/>
-            </Grid>
+            </DockPanel>
         </Border>
 
-        <!-- Bookmark Bar -->
-        <Border Grid.Row="2" Background="#1E1E1E" Padding="4,2" BorderBrush="#333" BorderThickness="0,0,0,1">
-            <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" 
+        <!-- Bookmark Bar (Horizontal Scroll) -->
+        <Border Grid.Row="2" Background="#1E1E1E" BorderBrush="#333" BorderThickness="0,0,0,1">
+            <ScrollViewer x:Name="BookmarkScrollViewer" 
+                          HorizontalScrollBarVisibility="Hidden" 
+                          VerticalScrollBarVisibility="Disabled" 
                           PreviewMouseWheel="BookmarkScrollViewer_PreviewMouseWheel">
                 <ItemsControl x:Name="BookmarkList">
                     <ItemsControl.ItemsPanel>

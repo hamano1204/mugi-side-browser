@@ -17,6 +17,13 @@ namespace MugiSideBrowser
         private const string BookmarkDataFormat = "MugiSideBrowser.BookmarkItem";
         private Microsoft.Web.WebView2.Wpf.WebView2 _activeWebView;
         private bool _isBottomInitialized = false;
+        private bool _isMobileMode = false;
+        private string? _defaultUserAgent = null;
+        private const string MobileUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1";
+        private bool _isFakeMinimized = false;
+
+
+
 
         public MainWindow()
         {
@@ -27,29 +34,123 @@ namespace MugiSideBrowser
             this.SourceInitialized += MainWindow_SourceInitialized;
             this.Closing += MainWindow_Closing;
             this.StateChanged += MainWindow_StateChanged;
+            this.Activated += MainWindow_Activated;
             
             InitializeWebView();
+
+            BookmarkList.ItemsSource = _bookmarks;
             LoadBookmarks();
         }
 
         private void MainWindow_StateChanged(object? sender, EventArgs e)
         {
+            // 本当の最小化が呼ばれたら、擬似最小化に切り替える
             if (this.WindowState == WindowState.Minimized)
             {
-                _appBarHelper.Unregister();
-            }
-            else if (this.WindowState == WindowState.Normal)
-            {
-                _appBarHelper.Register();
+                FakeMinimize();
             }
         }
+
+        private void MainWindow_Activated(object? sender, EventArgs e)
+        {
+            // 擬似最小化中にタスクバーからクリックされたら復帰
+            if (_isFakeMinimized)
+            {
+                RestoreFromFakeMinimize();
+            }
+        }
+
+        private void FakeMinimize()
+        {
+            if (_isFakeMinimized) return;
+            
+            _isFakeMinimized = true;
+            _appBarHelper.Unregister();
+
+            // 状態をNormalに戻してから画面外へ飛ばす
+            this.WindowState = WindowState.Normal;
+            this.Left = -30000;
+
+            // 重要：自分自身のアクティブ状態を解除する。
+            // これをしないと、次にタスクバーをクリックした時に Activated イベントが発生しない。
+            IntPtr taskbarHwnd = NativeMethods.FindWindow("Shell_TrayWnd", null);
+            if (taskbarHwnd != IntPtr.Zero)
+            {
+                NativeMethods.SetForegroundWindow(taskbarHwnd);
+            }
+        }
+
+        private void RestoreFromFakeMinimize()
+        {
+            if (!_isFakeMinimized) return;
+
+            _isFakeMinimized = false;
+            
+            // Register内でSetPositionが呼ばれ、正しい位置（右端）に戻る
+            _appBarHelper.Register();
+        }
+
 
         private void LoadBookmarks()
         {
             var list = BookmarkManager.Load();
-            _bookmarks = new ObservableCollection<BookmarkItem>(list);
-            BookmarkList.ItemsSource = _bookmarks;
+            _bookmarks.Clear();
+            foreach (var item in list) _bookmarks.Add(item);
         }
+
+        private void BookmarkScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (sender is ScrollViewer scrollViewer)
+            {
+                if (e.Delta > 0) scrollViewer.LineLeft();
+                else scrollViewer.LineRight();
+                e.Handled = true;
+            }
+        }
+
+        private void Tools_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement element)
+            {
+                element.ContextMenu.IsOpen = true;
+            }
+        }
+
+        private void UserAgent_Click(object sender, RoutedEventArgs e)
+        {
+            _isMobileMode = !_isMobileMode;
+            UpdateUserAgent();
+        }
+
+        private void UpdateUserAgent()
+        {
+            if (webView.CoreWebView2 == null) return;
+
+            // 初回時にデフォルトのUserAgentを保存
+            if (_defaultUserAgent == null)
+            {
+                _defaultUserAgent = webView.CoreWebView2.Settings.UserAgent;
+            }
+
+            string targetUA = _isMobileMode ? MobileUserAgent : _defaultUserAgent;
+
+            // メインのWebViewに適用
+            webView.CoreWebView2.Settings.UserAgent = targetUA;
+            
+            // 下部のWebView（初期化済みなら）にも適用
+            if (_isBottomInitialized && webViewBottom.CoreWebView2 != null)
+            {
+                webViewBottom.CoreWebView2.Settings.UserAgent = targetUA;
+            }
+
+            // メニュー項目のテキストとアイコンを更新
+            UserAgentMenuIcon.Text = _isMobileMode ? "" : "";
+            UserAgentMenuItem.Header = _isMobileMode ? "デスクトップ表示に切替" : "モバイル表示に切替";
+
+            // 現在のページをリロードして反映
+            _activeWebView.Reload();
+        }
+
 
         private void MainWindow_SourceInitialized(object? sender, EventArgs e)
         {
@@ -97,6 +198,13 @@ namespace MugiSideBrowser
             {
                 await webViewBottom.EnsureCoreWebView2Async();
                 webViewBottom.CoreWebView2.SourceChanged += CoreWebView2_SourceChanged;
+                
+                // 現在のUserAgent設定を適用
+                if (_defaultUserAgent != null)
+                {
+                    webViewBottom.CoreWebView2.Settings.UserAgent = _isMobileMode ? MobileUserAgent : _defaultUserAgent;
+                }
+
                 webViewBottom.Source = new Uri("https://www.google.com");
                 _isBottomInitialized = true;
             }
@@ -165,7 +273,7 @@ namespace MugiSideBrowser
 
         private void Minimize_Click(object sender, RoutedEventArgs e)
         {
-            this.WindowState = WindowState.Minimized;
+            FakeMinimize();
         }
 
         private void Star_Click(object sender, RoutedEventArgs e)
@@ -286,15 +394,6 @@ namespace MugiSideBrowser
             }
         }
 
-        private void BookmarkScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            if (sender is ScrollViewer scrollViewer)
-            {
-                if (e.Delta > 0) scrollViewer.LineLeft();
-                else scrollViewer.LineRight();
-                e.Handled = true;
-            }
-        }
 
         private void UrlTextBox_KeyDown(object sender, KeyEventArgs e)
         {
