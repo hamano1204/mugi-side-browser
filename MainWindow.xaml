@@ -47,9 +47,18 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition x:Name="RightResizeColumn" Width="0"/>
         </Grid.ColumnDefinitions>
+        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition x:Name="BottomResizeRow" Height="0"/>
+        </Grid.RowDefinitions>
 
         <!-- 左側のリサイズグリップ (右側に配置されている時用) -->
-        <Border x:Name="LeftResizeGrip" Grid.Column="0" Background="Transparent" Cursor="SizeWE" 
+        <Border x:Name="LeftResizeGrip" Grid.Column="0" Grid.Row="0" Background="Transparent" Cursor="SizeWE" 
+                MouseLeftButtonDown="ResizeGrip_MouseDown" MouseMove="ResizeGrip_MouseMove" MouseLeftButtonUp="ResizeGrip_MouseUp"/>
+        
+        <!-- 下側のリサイズグリップ (自由配置モード用) -->
+        <Border x:Name="BottomResizeGrip" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Background="Transparent" Cursor="SizeNS" 
                 MouseLeftButtonDown="ResizeGrip_MouseDown" MouseMove="ResizeGrip_MouseMove" MouseLeftButtonUp="ResizeGrip_MouseUp"/>
 
         <!-- メインコンテンツ -->

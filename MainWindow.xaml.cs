@@ -26,6 +26,7 @@ namespace MugiSideBrowser
         private bool _isFakeMinimized = false;
         private double _savedNormalLeft;
         private double _savedNormalTop;
+        private double _resizeStartHeight;
         private enum DisplayMode
         {
             AppBar,
@@ -189,8 +190,14 @@ namespace MugiSideBrowser
                 AutoHideMenuItem.IsChecked = false;
                 NormalWindowMenuItem.IsChecked = false;
                 StopAutoHideTimer();
+                _currentMode = DisplayMode.AppBar;
                 _appBarHelper.Register();
                 this.Topmost = true;
+
+                // AppBarモードでは高さはフル
+                LeftResizeColumn.Width = new GridLength(4);
+                RightResizeColumn.Width = new GridLength(4);
+                BottomResizeRow.Height = new GridLength(0);
                 
                 // 上下位置と高さをリセット
                 var helper = new WindowInteropHelper(this);
@@ -215,9 +222,10 @@ namespace MugiSideBrowser
                 StopAutoHideTimer();
                 this.Topmost = false;
 
-                // 自由配置モードでは左右両方の端でリサイズできるようにする
+                // 自由配置モードでは上下左右すべての端でリサイズできるようにする
                 LeftResizeColumn.Width = new GridLength(4);
                 RightResizeColumn.Width = new GridLength(4);
+                BottomResizeRow.Height = new GridLength(4);
                 
                 // 位置を少し中央寄りに移動（端に張り付いていると分かりにくいため）
                 this.Left += (_appBarHelper.Edge == NativeMethods.AppBarEdges.Left ? 20 : -20);
@@ -230,6 +238,7 @@ namespace MugiSideBrowser
                 NormalWindowMenuItem.IsChecked = false;
                 _appBarHelper.Unregister();
                 this.Topmost = true;
+                BottomResizeRow.Height = new GridLength(0);
                 StartAutoHideTimer();
             }
         }
@@ -401,12 +410,13 @@ namespace MugiSideBrowser
         {
             if (_currentMode == DisplayMode.Normal)
             {
-                // 自由配置モード：AppBarを解除し、両方のグリップを有効にする
+                // 自由配置モード：AppBarを解除し、全方向のグリップを有効にする
                 _appBarHelper.Unregister();
                 StopAutoHideTimer();
                 this.Topmost = false;
                 LeftResizeColumn.Width = new GridLength(4);
                 RightResizeColumn.Width = new GridLength(4);
+                BottomResizeRow.Height = new GridLength(4);
                 return;
             }
 
@@ -452,6 +462,7 @@ namespace MugiSideBrowser
             _resizeStartPoint = new System.Windows.Point(point.X / dpi, point.Y / dpi);
             
             _resizeStartWidth = this.Width;
+            _resizeStartHeight = this.Height;
 
             // アニメーションをクリア（これをしないとリサイズが効かない）
             this.BeginAnimation(Window.LeftProperty, null);
@@ -477,13 +488,51 @@ namespace MugiSideBrowser
             double diff = currentPoint.X - _resizeStartPoint.X;
             double newWidth;
 
-            if (_appBarHelper.Edge == NativeMethods.AppBarEdges.Right)
+            if (_currentMode == DisplayMode.Normal)
             {
-                newWidth = _resizeStartWidth - diff;
+                // 自由配置モード：掴んだグリップによって計算を分ける
+                if (((FrameworkElement)sender).Name == "BottomResizeGrip")
+                {
+                    double diffY = currentPoint.Y - _resizeStartPoint.Y;
+                    double newHeight = _resizeStartHeight + diffY;
+
+                    // 最小高さ 200px, 最大高さはモニターに合わせる
+                    if (newHeight < 200) newHeight = 200;
+                    
+                    var helper_h = new WindowInteropHelper(this);
+                    IntPtr hMonitor_h = NativeMethods.MonitorFromWindow(helper_h.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
+                    var mi_h = new NativeMethods.MONITORINFO();
+                    mi_h.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
+                    if (NativeMethods.GetMonitorInfo(hMonitor_h, ref mi_h))
+                    {
+                        double maxHeight = (mi_h.rcMonitor.Bottom - mi_h.rcMonitor.Top) / dpi;
+                        if (newHeight > maxHeight) newHeight = maxHeight;
+                    }
+
+                    this.Height = newHeight;
+                    return;
+                }
+
+                if (((FrameworkElement)sender).Name == "LeftResizeGrip")
+                {
+                    newWidth = _resizeStartWidth - diff; // 左に動かす（diffマイナス）と幅が増える
+                }
+                else
+                {
+                    newWidth = _resizeStartWidth + diff; // 右に動かす（diffプラス）と幅が増える
+                }
             }
             else
             {
-                newWidth = _resizeStartWidth + diff;
+                // AppBar/ホットコーナーモード：配置位置によって計算を分ける
+                if (_appBarHelper.Edge == NativeMethods.AppBarEdges.Right)
+                {
+                    newWidth = _resizeStartWidth - diff;
+                }
+                else
+                {
+                    newWidth = _resizeStartWidth + diff;
+                }
             }
 
             if (newWidth < 300) newWidth = 300;
@@ -491,7 +540,6 @@ namespace MugiSideBrowser
 
             if (_currentMode == DisplayMode.Normal)
             {
-                // 自由配置モード：掴んだ方に応じて Left と Width を調整
                 if (((FrameworkElement)sender).Name == "LeftResizeGrip")
                 {
                     double oldRight = this.Left + this.Width;
@@ -505,6 +553,7 @@ namespace MugiSideBrowser
                 _currentFullWidth = newWidth;
                 return;
             }
+
 
             this.Width = newWidth;
             _currentFullWidth = newWidth;
@@ -544,12 +593,13 @@ namespace MugiSideBrowser
                     this.Left = -30000;
                     _appBarHelper.SetPosition();
                 }
-                else
+                else if (_currentMode == DisplayMode.AutoHide)
                 {
                     // 自動隠しモードならタイマーを再開
                     StartAutoHideTimer();
                     _isSlidOut = true; // 現在は「出ている」状態
                 }
+                // Normal モードの時は何もしない
             }
         }
 
