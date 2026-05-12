@@ -21,7 +21,7 @@ namespace MugiSideBrowser
         private const string BookmarkDataFormat = "MugiSideBrowser.BookmarkItem";
         private Microsoft.Web.WebView2.Wpf.WebView2 _activeWebView;
         private bool _isBottomInitialized = false;
-        private bool _isMobileMode = false;
+        private bool _isMobileMode = true;
         private string? _defaultUserAgent = null;
         private bool _useExternalBrowserOnCtrlClick = true;
         private const string MobileUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1";
@@ -828,31 +828,39 @@ namespace MugiSideBrowser
 
         private void UpdateUserAgent()
         {
-            if (webView.CoreWebView2 == null) return;
-
-            // 初回時にデフォルトのUserAgentを保存
-            if (_defaultUserAgent == null)
+            try
             {
-                _defaultUserAgent = webView.CoreWebView2.Settings.UserAgent;
+                if (webView == null || webView.CoreWebView2 == null) return;
+
+                // 初回時にデフォルトのUserAgentを保存
+                if (_defaultUserAgent == null)
+                {
+                    _defaultUserAgent = webView.CoreWebView2.Settings.UserAgent;
+                }
+
+                string targetUA = _isMobileMode ? MobileUserAgent : _defaultUserAgent;
+
+                // メインのWebViewに適用
+                webView.CoreWebView2.Settings.UserAgent = targetUA;
+                
+                // 下部のWebView（初期化済みなら）にも適用
+                if (_isBottomInitialized && webViewBottom != null && webViewBottom.CoreWebView2 != null)
+                {
+                    webViewBottom.CoreWebView2.Settings.UserAgent = targetUA;
+                }
+
+                // メニュー項目のテキストとアイコンを更新
+                if (UserAgentMenuIcon != null) UserAgentMenuIcon.Text = _isMobileMode ? "" : "";
+                if (UserAgentMenuItem != null) UserAgentMenuItem.Header = _isMobileMode ? "デスクトップ表示に切替" : "モバイル表示に切替";
+
+                // 現在のページがあればリロードして反映
+                if (_activeWebView.Source != null && !string.IsNullOrEmpty(_activeWebView.Source.ToString()))
+                {
+                    _activeWebView.Reload();
+                }
             }
-
-            string targetUA = _isMobileMode ? MobileUserAgent : _defaultUserAgent;
-
-            // メインのWebViewに適用
-            webView.CoreWebView2.Settings.UserAgent = targetUA;
-            
-            // 下部のWebView（初期化済みなら）にも適用
-            if (_isBottomInitialized && webViewBottom.CoreWebView2 != null)
-            {
-                webViewBottom.CoreWebView2.Settings.UserAgent = targetUA;
-            }
-
-            // メニュー項目のテキストとアイコンを更新
-            UserAgentMenuIcon.Text = _isMobileMode ? "" : "";
-            UserAgentMenuItem.Header = _isMobileMode ? "デスクトップ表示に切替" : "モバイル表示に切替";
-
-            // 現在のページをリロードして反映
-            _activeWebView.Reload();
+            catch (ObjectDisposedException) { /* 破棄済みの場合は無視 */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"UpdateUserAgent Error: {ex.Message}"); }
         }
 
         private void ExternalBrowser_Click(object sender, RoutedEventArgs e)
@@ -882,6 +890,7 @@ namespace MugiSideBrowser
             try
             {
                 await webView.EnsureCoreWebView2Async();
+                UpdateUserAgent();
                 webView.CoreWebView2.SourceChanged += CoreWebView2_SourceChanged;
                 webView.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
                 webView.Source = new Uri("https://www.google.com");
@@ -1062,6 +1071,25 @@ namespace MugiSideBrowser
                 catch (Exception ex)
                 {
                     System.Windows.MessageBox.Show($"コピーに失敗しました: {ex.Message}", "エラー");
+                }
+            }
+        }
+
+        private void OpenExternal_Click(object sender, RoutedEventArgs e)
+        {
+            if (_activeWebView.Source != null)
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = _activeWebView.Source.ToString(),
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show($"標準ブラウザで開けませんでした: {ex.Message}", "エラー");
                 }
             }
         }

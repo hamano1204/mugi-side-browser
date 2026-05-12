@@ -106,9 +106,9 @@
                                         <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                                     </MenuItem.Icon>
                                 </MenuItem>
-                                <MenuItem x:Name="UserAgentMenuItem" Header="モバイル表示に切替" Click="UserAgent_Click">
+                                <MenuItem x:Name="UserAgentMenuItem" Header="デスクトップ表示に切替" Click="UserAgent_Click">
                                     <MenuItem.Icon>
-                                        <TextBlock x:Name="UserAgentMenuIcon" Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="UserAgentMenuIcon" Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                                     </MenuItem.Icon>
                                 </MenuItem>
                                 <MenuItem x:Name="ExternalBrowserMenuItem" Header="新しいウィンドウを標準ブラウザで開く" IsCheckable="True" IsChecked="True" Click="ExternalBrowser_Click">
@@ -134,6 +134,11 @@
                                 <MenuItem Header="URLをコピー" Click="CopyUrl_Click">
                                     <MenuItem.Icon>
                                         <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="標準ブラウザで開く" Click="OpenExternal_Click">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                                     </MenuItem.Icon>
                                 </MenuItem>
                             </ContextMenu>
