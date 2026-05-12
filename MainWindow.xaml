@@ -62,7 +62,7 @@
             </Grid.RowDefinitions>
 
             <!-- Custom Title Bar / Toolbar -->
-            <Border Grid.Row="0" Background="#2D2D2D" Padding="8,4">
+            <Border Grid.Row="0" Background="#2D2D2D" Padding="8,4" MouseLeftButtonDown="TitleBar_MouseDown">
                 <DockPanel>
                     <!-- Left: Navigation -->
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
@@ -106,6 +106,7 @@
                                     </MenuItem.Icon>
                                     <MenuItem x:Name="AlwaysVisibleMenuItem" Header="常時表示 (AppBar)" Click="DisplayMode_Click" IsChecked="True"/>
                                     <MenuItem x:Name="AutoHideMenuItem" Header="自動的に隠す (Hot Corner)" Click="DisplayMode_Click"/>
+                                    <MenuItem x:Name="NormalWindowMenuItem" Header="ウィンドウ (自由配置)" Click="DisplayMode_Click"/>
                                 </MenuItem>
                                 <Separator/>
                                 <MenuItem Header="配置設定">

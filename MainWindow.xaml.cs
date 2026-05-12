@@ -24,7 +24,14 @@ namespace MugiSideBrowser
         private string? _defaultUserAgent = null;
         private const string MobileUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1";
         private bool _isFakeMinimized = false;
-        private enum DisplayMode { AppBar, AutoHide }
+        private double _savedNormalLeft;
+        private double _savedNormalTop;
+        private enum DisplayMode
+        {
+            AppBar,
+            AutoHide,
+            Normal
+        }
         private DisplayMode _currentMode = DisplayMode.AppBar;
         private System.Windows.Threading.DispatcherTimer? _mouseTimer;
         private bool _isSlidOut = false;
@@ -82,6 +89,13 @@ namespace MugiSideBrowser
             
             _isFakeMinimized = true;
 
+            // 通常モードの場合は現在の位置を記憶しておく
+            if (_currentMode == DisplayMode.Normal)
+            {
+                _savedNormalLeft = this.Left;
+                _savedNormalTop = this.Top;
+            }
+
             // アニメーションを停止（これをしないとLeftの上書きが効かない）
             this.BeginAnimation(Window.LeftProperty, null);
             this.BeginAnimation(Window.WidthProperty, null);
@@ -94,6 +108,7 @@ namespace MugiSideBrowser
             // 状態をNormalに戻してから画面外へ飛ばす
             this.WindowState = WindowState.Normal;
             this.Left = -30000;
+            this.Top = -30000;
 
             // 重要：自分自身のアクティブ状態を解除する。
             IntPtr taskbarHwnd = NativeMethods.FindWindow("Shell_TrayWnd", null);
@@ -104,18 +119,26 @@ namespace MugiSideBrowser
         }
 
 
+
         private void RestoreFromFakeMinimize()
         {
             if (!_isFakeMinimized) return;
 
             _isFakeMinimized = false;
             
-            if (_currentMode == DisplayMode.AppBar)
+            if (_currentMode == DisplayMode.Normal)
+            {
+                // 通常モードなら記憶していた位置に戻す
+                this.Left = _savedNormalLeft;
+                this.Top = _savedNormalTop;
+                this.Topmost = false;
+            }
+            else if (_currentMode == DisplayMode.AppBar)
             {
                 // AppBarモードなら予約して右端へ
                 _appBarHelper.Register();
             }
-            else
+            else if (_currentMode == DisplayMode.AutoHide)
             {
                 // 自動隠しモードなら予約せず「隠れた状態」として復帰
                 _isSlidOut = true; // SlideOut()を確実に動かすため
@@ -123,6 +146,7 @@ namespace MugiSideBrowser
                 StartAutoHideTimer();
             }
         }
+
 
 
 
@@ -163,6 +187,7 @@ namespace MugiSideBrowser
                 _currentMode = DisplayMode.AppBar;
                 AlwaysVisibleMenuItem.IsChecked = true;
                 AutoHideMenuItem.IsChecked = false;
+                NormalWindowMenuItem.IsChecked = false;
                 StopAutoHideTimer();
 
                 // 重要：自分自身との衝突を防ぐため、一度画面外へ飛ばしてから登録する
@@ -170,13 +195,44 @@ namespace MugiSideBrowser
                 
                 _appBarHelper.Register();
             }
+            else if (sender == NormalWindowMenuItem)
+            {
+                _currentMode = DisplayMode.Normal;
+                AlwaysVisibleMenuItem.IsChecked = false;
+                AutoHideMenuItem.IsChecked = false;
+                NormalWindowMenuItem.IsChecked = true;
+
+                _appBarHelper.Unregister();
+                StopAutoHideTimer();
+                this.Topmost = false;
+
+                // 自由配置モードでは左右両方の端でリサイズできるようにする
+                LeftResizeColumn.Width = new GridLength(4);
+                RightResizeColumn.Width = new GridLength(4);
+                
+                // 位置を少し中央寄りに移動（端に張り付いていると分かりにくいため）
+                this.Left += (_appBarHelper.Edge == NativeMethods.AppBarEdges.Left ? 20 : -20);
+            }
             else
             {
                 _currentMode = DisplayMode.AutoHide;
                 AlwaysVisibleMenuItem.IsChecked = false;
                 AutoHideMenuItem.IsChecked = true;
+                NormalWindowMenuItem.IsChecked = false;
                 _appBarHelper.Unregister();
                 StartAutoHideTimer();
+            }
+        }
+
+        private void TitleBar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == System.Windows.Input.MouseButton.Left)
+            {
+                // 自由配置モードの時だけドラッグ移動を許可する
+                if (_currentMode == DisplayMode.Normal)
+                {
+                    this.DragMove();
+                }
             }
         }
 
@@ -327,6 +383,17 @@ namespace MugiSideBrowser
 
         private void Side_Click(object sender, RoutedEventArgs e)
         {
+            if (_currentMode == DisplayMode.Normal)
+            {
+                // 自由配置モード：AppBarを解除し、両方のグリップを有効にする
+                _appBarHelper.Unregister();
+                StopAutoHideTimer();
+                this.Topmost = false;
+                LeftResizeColumn.Width = new GridLength(4);
+                RightResizeColumn.Width = new GridLength(4);
+                return;
+            }
+
             if (sender == LeftDockMenuItem)
             {
                 _appBarHelper.Edge = NativeMethods.AppBarEdges.Left;
@@ -405,6 +472,23 @@ namespace MugiSideBrowser
 
             if (newWidth < 300) newWidth = 300;
             if (newWidth > 800) newWidth = 800;
+
+            if (_currentMode == DisplayMode.Normal)
+            {
+                // 自由配置モード：掴んだ方に応じて Left と Width を調整
+                if (((FrameworkElement)sender).Name == "LeftResizeGrip")
+                {
+                    double oldRight = this.Left + this.Width;
+                    this.Width = newWidth;
+                    this.Left = oldRight - newWidth;
+                }
+                else
+                {
+                    this.Width = newWidth;
+                }
+                _currentFullWidth = newWidth;
+                return;
+            }
 
             this.Width = newWidth;
             _currentFullWidth = newWidth;
