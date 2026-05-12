@@ -41,154 +41,175 @@
         </Style>
     </Window.Resources>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+    <Grid x:Name="RootGrid">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="LeftResizeColumn" Width="4"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition x:Name="RightResizeColumn" Width="0"/>
+        </Grid.ColumnDefinitions>
 
-        <!-- Custom Title Bar / Toolbar -->
-        <Border Grid.Row="0" Background="#2D2D2D" Padding="8,4">
-            <DockPanel>
-                <!-- Left: Navigation -->
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                    <Button Content="" Click="Back_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="戻る"/>
-                    <Button Content="" Click="Forward_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="進む"/>
-                    <Button Content="" Click="Reload_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="更新"/>
-                </StackPanel>
-                
-                <!-- Right: Window Controls -->
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                    <Button Content="" Click="Minimize_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="最小化"/>
-                    <Button Content="" Click="Close_Click" Style="{StaticResource ToolbarButtonStyle}" Foreground="#FF6B6B" ToolTip="閉じる"/>
-                </StackPanel>
+        <!-- 左側のリサイズグリップ (右側に配置されている時用) -->
+        <Border x:Name="LeftResizeGrip" Grid.Column="0" Background="Transparent" Cursor="SizeWE" 
+                MouseLeftButtonDown="ResizeGrip_MouseDown" MouseMove="ResizeGrip_MouseMove" MouseLeftButtonUp="ResizeGrip_MouseUp"/>
 
-                <!-- Center: Spacer -->
-                <Grid/>
-            </DockPanel>
-        </Border>
-
-        <!-- Address Bar & Tools -->
-        <Border Grid.Row="1" Background="#252525" Padding="8,4" BorderBrush="#333" BorderThickness="0,1">
-            <DockPanel LastChildFill="True">
-                <Button Content="" DockPanel.Dock="Right" Style="{StaticResource ToolbarButtonStyle}" 
-                        Click="Tools_Click" ToolTip="ツールメニュー" Margin="4,0,0,0">
-                    <Button.ContextMenu>
-                        <ContextMenu x:Name="ToolsMenu">
-                            <MenuItem x:Name="SplitMenuItem" Header="上下分割を切り替え" Click="SplitView_Click">
-                                <MenuItem.Icon>
-                                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                </MenuItem.Icon>
-                            </MenuItem>
-                            <MenuItem x:Name="UserAgentMenuItem" Header="モバイル表示に切替" Click="UserAgent_Click">
-                                <MenuItem.Icon>
-                                    <TextBlock x:Name="UserAgentMenuIcon" Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                </MenuItem.Icon>
-                            </MenuItem>
-                            <Separator/>
-                            <MenuItem Header="表示モード">
-                                <MenuItem.Icon>
-                                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                </MenuItem.Icon>
-                                <MenuItem x:Name="AlwaysVisibleMenuItem" Header="常時表示 (AppBar)" Click="DisplayMode_Click" IsChecked="True"/>
-                                <MenuItem x:Name="AutoHideMenuItem" Header="自動的に隠す (Hot Corner)" Click="DisplayMode_Click"/>
-                            </MenuItem>
-                            <Separator/>
-                            <MenuItem Header="配置設定">
-                                <MenuItem.Icon>
-                                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                </MenuItem.Icon>
-                                <MenuItem x:Name="LeftDockMenuItem" Header="左側に表示" Click="Side_Click"/>
-                                <MenuItem x:Name="RightDockMenuItem" Header="右側に表示" Click="Side_Click" IsChecked="True"/>
-                            </MenuItem>
-                            <MenuItem x:Name="MonitorSelectMenuItem" Header="モニター移動">
-                                <MenuItem.Icon>
-                                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                </MenuItem.Icon>
-                                <!-- Dynamic content here -->
-                            </MenuItem>
-                            <Separator/>
-                            <MenuItem Header="このページをブックマーク" Click="Star_Click">
-                                <MenuItem.Icon>
-                                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                </MenuItem.Icon>
-                            </MenuItem>
-                        </ContextMenu>
-                    </Button.ContextMenu>
-                </Button>
-                
-                <TextBox x:Name="UrlTextBox" Background="#333" Foreground="White" BorderThickness="1" BorderBrush="#444"
-                         Padding="8,4" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown"
-                         FontSize="13" SelectionBrush="#0078D4">
-                    <TextBox.Resources>
-                        <Style TargetType="{x:Type Border}">
-                            <Setter Property="CornerRadius" Value="4"/>
-                        </Style>
-                    </TextBox.Resources>
-                </TextBox>
-            </DockPanel>
-        </Border>
-
-        <!-- Bookmark Bar (Horizontal Scroll) -->
-        <Border Grid.Row="2" Background="#1E1E1E" BorderBrush="#333" BorderThickness="0,0,0,1">
-            <ScrollViewer x:Name="BookmarkScrollViewer" 
-                          HorizontalScrollBarVisibility="Hidden" 
-                          VerticalScrollBarVisibility="Disabled" 
-                          PreviewMouseWheel="BookmarkScrollViewer_PreviewMouseWheel">
-                <ItemsControl x:Name="BookmarkList">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Cursor="Hand" Padding="6" CornerRadius="4" Margin="0,0,2,0"
-                                    ToolTip="{Binding Title}"
-                                    PreviewMouseLeftButtonDown="Bookmark_PreviewMouseLeftButtonDown" 
-                                    MouseMove="Bookmark_MouseMove"
-                                    MouseLeftButtonUp="Bookmark_MouseLeftButtonUp"
-                                    AllowDrop="True" Drop="Bookmark_Drop" DragOver="Bookmark_DragOver">
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Setter Property="Background" Value="Transparent"/>
-                                        <Style.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#3D3D3D"/>
-                                            </Trigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Border.Style>
-                                <Border.ContextMenu>
-                                    <ContextMenu>
-                                        <MenuItem Header="削除" Click="DeleteBookmark_Click"/>
-                                    </ContextMenu>
-                                </Border.ContextMenu>
-                                <Image Source="{Binding DisplayFaviconUrl}" Width="16" Height="16" IsHitTestVisible="False"/>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-        </Border>
-
-        <!-- Browser Area -->
-        <Grid Grid.Row="3">
+        <!-- メインコンテンツ -->
+        <Grid Grid.Column="1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="*" x:Name="TopRow"/>
-                <RowDefinition Height="Auto" x:Name="SplitterRow"/>
-                <RowDefinition Height="0" x:Name="BottomRow"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <wv2:WebView2 x:Name="webView" Grid.Row="0" Margin="0" GotFocus="WebView_GotFocus"/>
+            <!-- Custom Title Bar / Toolbar -->
+            <Border Grid.Row="0" Background="#2D2D2D" Padding="8,4">
+                <DockPanel>
+                    <!-- Left: Navigation -->
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                        <Button Content="" Click="Back_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="戻る"/>
+                        <Button Content="" Click="Forward_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="進む"/>
+                        <Button Content="" Click="Reload_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="更新"/>
+                    </StackPanel>
+                    
+                    <!-- Right: Window Controls -->
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                        <Button Content="" Click="Minimize_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="最小化"/>
+                        <Button Content="" Click="Close_Click" Style="{StaticResource ToolbarButtonStyle}" Foreground="#FF6B6B" ToolTip="閉じる"/>
+                    </StackPanel>
 
-            <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="#333" 
-                          Visibility="Collapsed" x:Name="VerticalSplitter" ShowsPreview="True"/>
+                    <!-- Center: Spacer -->
+                    <Grid/>
+                </DockPanel>
+            </Border>
 
-            <wv2:WebView2 x:Name="webViewBottom" Grid.Row="2" Margin="0" Visibility="Collapsed" GotFocus="WebView_GotFocus"/>
+            <!-- Address Bar & Tools -->
+            <Border Grid.Row="1" Background="#252525" Padding="8,4" BorderBrush="#333" BorderThickness="0,1">
+                <DockPanel LastChildFill="True">
+                    <Button Content="" DockPanel.Dock="Right" Style="{StaticResource ToolbarButtonStyle}" 
+                            Click="Tools_Click" ToolTip="ツールメニュー" Margin="4,0,0,0">
+                        <Button.ContextMenu>
+                            <ContextMenu x:Name="ToolsMenu">
+                                <MenuItem x:Name="SplitMenuItem" Header="上下分割を切り替え" Click="SplitView_Click">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem x:Name="UserAgentMenuItem" Header="モバイル表示に切替" Click="UserAgent_Click">
+                                    <MenuItem.Icon>
+                                        <TextBlock x:Name="UserAgentMenuIcon" Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <Separator/>
+                                <MenuItem Header="表示モード">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                    </MenuItem.Icon>
+                                    <MenuItem x:Name="AlwaysVisibleMenuItem" Header="常時表示 (AppBar)" Click="DisplayMode_Click" IsChecked="True"/>
+                                    <MenuItem x:Name="AutoHideMenuItem" Header="自動的に隠す (Hot Corner)" Click="DisplayMode_Click"/>
+                                </MenuItem>
+                                <Separator/>
+                                <MenuItem Header="配置設定">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                    </MenuItem.Icon>
+                                    <MenuItem x:Name="LeftDockMenuItem" Header="左側に表示" Click="Side_Click"/>
+                                    <MenuItem x:Name="RightDockMenuItem" Header="右側に表示" Click="Side_Click" IsChecked="True"/>
+                                </MenuItem>
+                                <MenuItem x:Name="MonitorSelectMenuItem" Header="モニター移動">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                    </MenuItem.Icon>
+                                    <!-- Dynamic content here -->
+                                </MenuItem>
+                                <Separator/>
+                                <MenuItem Header="このページをブックマーク" Click="Star_Click">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    
+                    <TextBox x:Name="UrlTextBox" Background="#333" Foreground="White" BorderThickness="1" BorderBrush="#444"
+                             Padding="8,4" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown"
+                             FontSize="13" SelectionBrush="#0078D4">
+                        <TextBox.Resources>
+                            <Style TargetType="{x:Type Border}">
+                                <Setter Property="CornerRadius" Value="4"/>
+                            </Style>
+                        </TextBox.Resources>
+                    </TextBox>
+                </DockPanel>
+            </Border>
+
+            <!-- Bookmark Bar (Horizontal Scroll) -->
+            <Border Grid.Row="2" Background="#1E1E1E" BorderBrush="#333" BorderThickness="0,0,0,1">
+                <ScrollViewer x:Name="BookmarkScrollViewer" 
+                              HorizontalScrollBarVisibility="Hidden" 
+                              VerticalScrollBarVisibility="Disabled" 
+                              PreviewMouseWheel="BookmarkScrollViewer_PreviewMouseWheel">
+                    <ItemsControl x:Name="BookmarkList">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Cursor="Hand" Padding="6" CornerRadius="4" Margin="0,0,2,0"
+                                        ToolTip="{Binding Title}"
+                                        PreviewMouseLeftButtonDown="Bookmark_PreviewMouseLeftButtonDown" 
+                                        MouseMove="Bookmark_MouseMove"
+                                        MouseLeftButtonUp="Bookmark_MouseLeftButtonUp"
+                                        AllowDrop="True" Drop="Bookmark_Drop" DragOver="Bookmark_DragOver">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#3D3D3D"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Border.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="削除" Click="DeleteBookmark_Click"/>
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
+                                    <Image Source="{Binding DisplayFaviconUrl}" Width="16" Height="16" IsHitTestVisible="False"/>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Browser Area -->
+            <Grid Grid.Row="3">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" x:Name="TopRow"/>
+                    <RowDefinition Height="Auto" x:Name="SplitterRow"/>
+                    <RowDefinition Height="0" x:Name="BottomRow"/>
+                </Grid.RowDefinitions>
+
+                <wv2:WebView2 x:Name="webView" Grid.Row="0" Margin="0" GotFocus="WebView_GotFocus"/>
+
+                <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="#333" 
+                              Visibility="Collapsed" x:Name="VerticalSplitter" ShowsPreview="True"/>
+
+                <wv2:WebView2 x:Name="webViewBottom" Grid.Row="2" Margin="0" Visibility="Collapsed" GotFocus="WebView_GotFocus"/>
+            </Grid>
         </Grid>
+
+        <!-- 右側のリサイズグリップ (左側に配置されている時用) -->
+        <Border x:Name="RightResizeGrip" Grid.Column="2" Background="Transparent" Cursor="SizeWE" 
+                MouseLeftButtonDown="ResizeGrip_MouseDown" MouseMove="ResizeGrip_MouseMove" MouseLeftButtonUp="ResizeGrip_MouseUp"/>
+
+        <!-- リサイズ中のガイド線 -->
+        <Rectangle x:Name="ResizePreview" Grid.Column="1" HorizontalAlignment="Left" Width="2" Fill="#0078D4" 
+                   Visibility="Collapsed" IsHitTestVisible="False" Opacity="0.8"/>
     </Grid>
 
 </Window>

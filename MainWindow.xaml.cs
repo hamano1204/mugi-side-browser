@@ -28,8 +28,14 @@ namespace MugiSideBrowser
         private DisplayMode _currentMode = DisplayMode.AppBar;
         private System.Windows.Threading.DispatcherTimer? _mouseTimer;
         private bool _isSlidOut = false;
-        private const double FullWidth = 400;
+        private const double FullWidthDefault = 400;
+        private double _currentFullWidth = FullWidthDefault;
         private const double TriggerWidth = 2;
+
+        private bool _isResizing = false;
+        private System.Windows.Point _resizeStartPoint;
+        private double _resizeStartWidth;
+        private DateTime _lastResizeTime = DateTime.MinValue;
 
 
 
@@ -192,9 +198,10 @@ namespace MugiSideBrowser
         private void StopAutoHideTimer()
         {
             _mouseTimer?.Stop();
-            // 常時表示に戻す際は元の幅に戻す
-            this.Width = FullWidth;
+            // 常時表示に戻す際は現在の設定幅に戻す
+            this.Width = _currentFullWidth;
         }
+
 
         private void MouseTimer_Tick(object? sender, EventArgs e)
         {
@@ -220,7 +227,7 @@ namespace MugiSideBrowser
                 // 右端のトリガーゾーン（端から5ピクセル以内）
                 isMouseInTriggerZone = (point.X >= mi.rcMonitor.Right - 5 && point.Y >= mi.rcMonitor.Top && point.Y <= mi.rcMonitor.Bottom);
                 // ウィンドウ内かチェック
-                isMouseInWindow = (point.X >= mi.rcMonitor.Right - (FullWidth * dpi) && point.X <= mi.rcMonitor.Right && 
+                isMouseInWindow = (point.X >= mi.rcMonitor.Right - (_currentFullWidth * dpi) && point.X <= mi.rcMonitor.Right && 
                                    point.Y >= mi.rcMonitor.Top && point.Y <= mi.rcMonitor.Bottom);
             }
             else
@@ -228,9 +235,10 @@ namespace MugiSideBrowser
                 // 左端のトリガーゾーン
                 isMouseInTriggerZone = (point.X <= mi.rcMonitor.Left + 5 && point.Y >= mi.rcMonitor.Top && point.Y <= mi.rcMonitor.Bottom);
                 // ウィンドウ内かチェック
-                isMouseInWindow = (point.X >= mi.rcMonitor.Left && point.X <= mi.rcMonitor.Left + (FullWidth * dpi) && 
+                isMouseInWindow = (point.X >= mi.rcMonitor.Left && point.X <= mi.rcMonitor.Left + (_currentFullWidth * dpi) && 
                                    point.Y >= mi.rcMonitor.Top && point.Y <= mi.rcMonitor.Bottom);
             }
+
 
             if (isMouseInTriggerZone && !_isSlidOut)
             {
@@ -252,15 +260,40 @@ namespace MugiSideBrowser
             if (_isSlidOut) return;
             _isSlidOut = true;
             this.Topmost = true;
-            AnimateWindow(FullWidth);
+
+            // 表示されたのでリサイズを許可
+            LeftResizeGrip.IsHitTestVisible = true;
+            RightResizeGrip.IsHitTestVisible = true;
+
+            AnimateWindow(_currentFullWidth);
         }
+
+
 
         private void SlideOut()
         {
             if (!_isSlidOut) return;
             _isSlidOut = false;
+
+            // 隠れる時はリサイズを禁止（マウスカーソルの誤変化を防ぐ）
+            LeftResizeGrip.IsHitTestVisible = false;
+            RightResizeGrip.IsHitTestVisible = false;
+
             AnimateWindow(TriggerWidth);
+
+            // 隠れる際、もし自分がアクティブならフォーカスを他に譲る
+            // これをしないと、隠れた後のマウス接近検知が不安定になることがある
+            var helper = new WindowInteropHelper(this);
+            if (NativeMethods.GetForegroundWindow() == helper.Handle)
+            {
+                IntPtr taskbarHwnd = NativeMethods.FindWindow("Shell_TrayWnd", null);
+                if (taskbarHwnd != IntPtr.Zero)
+                {
+                    NativeMethods.SetForegroundWindow(taskbarHwnd);
+                }
+            }
         }
+
 
         private void AnimateWindow(double targetWidth)
         {
@@ -299,15 +332,130 @@ namespace MugiSideBrowser
                 _appBarHelper.Edge = NativeMethods.AppBarEdges.Left;
                 LeftDockMenuItem.IsChecked = true;
                 RightDockMenuItem.IsChecked = false;
+                
+                // 左固定時は右端をリサイズ可能にする
+                LeftResizeColumn.Width = new GridLength(0);
+                RightResizeColumn.Width = new GridLength(4);
             }
             else
             {
                 _appBarHelper.Edge = NativeMethods.AppBarEdges.Right;
                 LeftDockMenuItem.IsChecked = false;
                 RightDockMenuItem.IsChecked = true;
+
+                // 右固定時は左端をリサイズ可能にする
+                LeftResizeColumn.Width = new GridLength(4);
+                RightResizeColumn.Width = new GridLength(0);
             }
-            _appBarHelper.SetPosition();
+
+            if (_currentMode == DisplayMode.AppBar)
+            {
+                _appBarHelper.SetPosition();
+            }
+            else
+            {
+                SlideIn();
+            }
         }
+
+        private void ResizeGrip_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            _isResizing = true;
+
+            // スクリーン座標（絶対座標）を取得して開始点とする
+            var point = new System.Drawing.Point();
+            NativeMethods.GetCursorPos(ref point);
+            double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+            _resizeStartPoint = new System.Windows.Point(point.X / dpi, point.Y / dpi);
+            
+            _resizeStartWidth = this.Width;
+
+            // アニメーションをクリア（これをしないとリサイズが効かない）
+            this.BeginAnimation(Window.LeftProperty, null);
+            this.BeginAnimation(Window.WidthProperty, null);
+
+            // リサイズ中は勝手に隠れないようにタイマーを止める
+            _mouseTimer?.Stop();
+
+            ((UIElement)sender).CaptureMouse();
+        }
+
+
+        private void ResizeGrip_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (!_isResizing) return;
+
+            // 現在のスクリーン座標（絶対座標）を取得
+            var point = new System.Drawing.Point();
+            NativeMethods.GetCursorPos(ref point);
+            double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+            var currentPoint = new System.Windows.Point(point.X / dpi, point.Y / dpi);
+
+            double diff = currentPoint.X - _resizeStartPoint.X;
+            double newWidth;
+
+            if (_appBarHelper.Edge == NativeMethods.AppBarEdges.Right)
+            {
+                newWidth = _resizeStartWidth - diff;
+            }
+            else
+            {
+                newWidth = _resizeStartWidth + diff;
+            }
+
+            if (newWidth < 300) newWidth = 300;
+            if (newWidth > 800) newWidth = 800;
+
+            this.Width = newWidth;
+            _currentFullWidth = newWidth;
+
+            var helper = new WindowInteropHelper(this);
+            IntPtr hMonitor = NativeMethods.MonitorFromWindow(helper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
+            var mi = new NativeMethods.MONITORINFO();
+            mi.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
+            if (NativeMethods.GetMonitorInfo(hMonitor, ref mi))
+            {
+                if (_appBarHelper.Edge == NativeMethods.AppBarEdges.Right)
+                {
+                    // 右端固定の場合：右端の位置をキープしたまま、左端（Left）を動かす
+                    this.Left = (mi.rcMonitor.Right / dpi) - newWidth;
+                }
+                else
+                {
+                    // 左端固定の場合：左端の位置（Left）を常にモニター左端に固定する
+                    this.Left = mi.rcMonitor.Left / dpi;
+                }
+            }
+        }
+
+
+
+        private void ResizeGrip_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (_isResizing)
+            {
+                _isResizing = false;
+                ((UIElement)sender).ReleaseMouseCapture();
+
+                // マウスを離した瞬間に、他のアプリを押し広げる（AppBarモードの場合のみ）
+                if (_currentMode == DisplayMode.AppBar)
+                {
+                    // 重要：自分自身との衝突（隙間）を防ぐため、一度画面外へ飛ばしてから確定させる
+                    this.Left = -30000;
+                    _appBarHelper.SetPosition();
+                }
+                else
+                {
+                    // 自動隠しモードならタイマーを再開
+                    StartAutoHideTimer();
+                    _isSlidOut = true; // 現在は「出ている」状態
+                }
+            }
+        }
+
+
+
+
 
         private void RefreshMonitorMenu()
         {
