@@ -64,9 +64,9 @@
         <!-- メインコンテンツ -->
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto" x:Name="TitleBarRow"/>
+                <RowDefinition Height="Auto" x:Name="AddressBarRow"/>
+                <RowDefinition Height="Auto" x:Name="BookmarkBarRow"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
@@ -78,9 +78,63 @@
                 <DockPanel>
                     <!-- Left: Navigation -->
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                        <Button Content="" Click="Back_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="戻る"/>
-                        <Button Content="" Click="Forward_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="進む"/>
-                        <Button Content="" Click="Reload_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="更新"/>
+                        <Button Content="" Style="{StaticResource ToolbarButtonStyle}" 
+                                Click="Tools_Click" ToolTip="ツールメニュー" Margin="0,0,4,0">
+                            <Button.ContextMenu>
+                                <ContextMenu x:Name="ToolsMenu">
+                                    <MenuItem x:Name="SplitMenuItem" Header="上下分割を切り替え" Click="SplitView_Click">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem x:Name="UserAgentMenuItem" Header="デスクトップ表示に切替" Click="UserAgent_Click">
+                                        <MenuItem.Icon>
+                                            <TextBlock x:Name="UserAgentMenuIcon" Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem x:Name="ExternalBrowserMenuItem" Header="新しいウィンドウを標準ブラウザで開く" IsCheckable="True" IsChecked="True" Click="ExternalBrowser_Click">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="ページを更新" Click="Reload_Click">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="メモ" Click="Memo_Click">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <Separator/>
+                                    <MenuItem Header="表示モード">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                        </MenuItem.Icon>
+                                        <MenuItem x:Name="AlwaysVisibleMenuItem" Header="常時表示 (AppBar)" Click="DisplayMode_Click" IsChecked="True"/>
+                                        <MenuItem x:Name="AutoHideMenuItem" Header="自動的に隠す (Hot Corner)" Click="DisplayMode_Click"/>
+                                        <MenuItem x:Name="NormalWindowMenuItem" Header="ウィンドウ (自由配置)" Click="DisplayMode_Click"/>
+                                    </MenuItem>
+                                    <Separator/>
+                                    <MenuItem Header="このページをブックマーク" Click="Star_Click">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="URLをコピー" Click="CopyUrl_Click">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="標準ブラウザで開く" Click="OpenExternal_Click">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
                     </StackPanel>
                     
                     <!-- Right: Window Controls -->
@@ -97,53 +151,10 @@
             <!-- Address Bar & Tools -->
             <Border Grid.Row="1" Background="#252525" Padding="8,4" BorderBrush="#333" BorderThickness="0,1">
                 <DockPanel LastChildFill="True">
-                    <Button Content="" DockPanel.Dock="Right" Style="{StaticResource ToolbarButtonStyle}" 
-                            Click="Tools_Click" ToolTip="ツールメニュー" Margin="4,0,0,0">
-                        <Button.ContextMenu>
-                            <ContextMenu x:Name="ToolsMenu">
-                                <MenuItem x:Name="SplitMenuItem" Header="上下分割を切り替え" Click="SplitView_Click">
-                                    <MenuItem.Icon>
-                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                                <MenuItem x:Name="UserAgentMenuItem" Header="デスクトップ表示に切替" Click="UserAgent_Click">
-                                    <MenuItem.Icon>
-                                        <TextBlock x:Name="UserAgentMenuIcon" Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                                <MenuItem x:Name="ExternalBrowserMenuItem" Header="新しいウィンドウを標準ブラウザで開く" IsCheckable="True" IsChecked="True" Click="ExternalBrowser_Click">
-                                    <MenuItem.Icon>
-                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                                <Separator/>
-                                <MenuItem Header="表示モード">
-                                    <MenuItem.Icon>
-                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                    </MenuItem.Icon>
-                                    <MenuItem x:Name="AlwaysVisibleMenuItem" Header="常時表示 (AppBar)" Click="DisplayMode_Click" IsChecked="True"/>
-                                    <MenuItem x:Name="AutoHideMenuItem" Header="自動的に隠す (Hot Corner)" Click="DisplayMode_Click"/>
-                                    <MenuItem x:Name="NormalWindowMenuItem" Header="ウィンドウ (自由配置)" Click="DisplayMode_Click"/>
-                                </MenuItem>
-                                <Separator/>
-                                <MenuItem Header="このページをブックマーク" Click="Star_Click">
-                                    <MenuItem.Icon>
-                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                                <MenuItem Header="URLをコピー" Click="CopyUrl_Click">
-                                    <MenuItem.Icon>
-                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                                <MenuItem Header="標準ブラウザで開く" Click="OpenExternal_Click">
-                                    <MenuItem.Icon>
-                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                            </ContextMenu>
-                        </Button.ContextMenu>
-                    </Button>
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="0,0,4,0">
+                        <Button Content="" Click="Back_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="戻る"/>
+                        <Button Content="" Click="Forward_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="進む"/>
+                    </StackPanel>
                     
                     <TextBox x:Name="UrlTextBox" Background="#333" Foreground="White" BorderThickness="1" BorderBrush="#444"
                              Padding="8,4" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown"
@@ -200,20 +211,57 @@
                 </ScrollViewer>
             </Border>
 
-            <!-- Browser Area -->
+            <!-- Main Content Area -->
             <Grid Grid.Row="3">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="*" x:Name="TopRow"/>
-                    <RowDefinition Height="Auto" x:Name="SplitterRow"/>
-                    <RowDefinition Height="0" x:Name="BottomRow"/>
+                    <RowDefinition Height="*" x:Name="BrowserSectionRow"/>
+                    <RowDefinition Height="Auto" x:Name="MemoSplitterRow"/>
+                    <RowDefinition Height="0" x:Name="MemoSectionRow"/>
                 </Grid.RowDefinitions>
 
-                <wv2:WebView2 x:Name="webView" Grid.Row="0" Margin="0" GotFocus="WebView_GotFocus"/>
+                <!-- Browser Views Group -->
+                <Grid Grid.Row="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" x:Name="TopRow"/>
+                        <RowDefinition Height="Auto" x:Name="SplitterRow"/>
+                        <RowDefinition Height="0" x:Name="BottomRow"/>
+                    </Grid.RowDefinitions>
 
-                <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="#333" 
-                              Visibility="Collapsed" x:Name="VerticalSplitter" ShowsPreview="True"/>
+                    <wv2:WebView2 x:Name="webView" Grid.Row="0" Margin="0" GotFocus="WebView_GotFocus"/>
 
-                <wv2:WebView2 x:Name="webViewBottom" Grid.Row="2" Margin="0" Visibility="Collapsed" GotFocus="WebView_GotFocus"/>
+                    <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="#333" 
+                                  Visibility="Collapsed" x:Name="VerticalSplitter" ShowsPreview="True"/>
+
+                    <wv2:WebView2 x:Name="webViewBottom" Grid.Row="2" Margin="0" Visibility="Collapsed" GotFocus="WebView_GotFocus"/>
+                </Grid>
+
+                <!-- Memo Splitter (Resizes BrowserSection vs MemoSection) -->
+                <GridSplitter x:Name="MemoSplitter" Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="#333" 
+                              Visibility="Collapsed" ShowsPreview="True" ResizeBehavior="PreviousAndNext"/>
+
+                <!-- Memo Area -->
+                <Grid x:Name="MemoArea" Grid.Row="2" Background="#1E1E1E" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Border Background="#252525" Padding="8,4" BorderBrush="#333" BorderThickness="0,1,0,1">
+                        <DockPanel>
+                            <TextBlock Text="メモ" VerticalAlignment="Center" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="MemoMaximizeButton" Content="" Style="{StaticResource ToolbarButtonStyle}" 
+                                        Width="20" Height="20" FontSize="10" Click="MemoMaximize_Click" ToolTip="最大化"/>
+                                <Button Content="" Style="{StaticResource ToolbarButtonStyle}" 
+                                        Width="20" Height="20" FontSize="10" Click="Memo_Click" ToolTip="閉じる"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <TextBox x:Name="MemoTextBox" Grid.Row="1" Background="#1E1E1E" Foreground="White" 
+                             BorderThickness="0" Padding="8" AcceptsReturn="True" AcceptsTab="True" 
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto" TextChanged="MemoTextBox_TextChanged"
+                             FontSize="13" FontFamily="Consolas, Meiryo" CaretBrush="White"/>
+                </Grid>
             </Grid>
         </Grid>
 

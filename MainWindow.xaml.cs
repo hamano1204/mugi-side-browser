@@ -10,6 +10,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Runtime.InteropServices;
 using Microsoft.Web.WebView2.Core;
+using System.IO;
 
 namespace MugiSideBrowser
 {
@@ -75,6 +76,7 @@ namespace MugiSideBrowser
 
             BookmarkList.ItemsSource = _bookmarks;
             LoadBookmarks();
+            LoadMemo();
         }
 
         private void UpdateWindowTitle()
@@ -374,6 +376,8 @@ namespace MugiSideBrowser
 
 
 
+        private bool _hasActuallyMoved = false;
+
         private void TitleBar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (e.ChangedButton == System.Windows.Input.MouseButton.Left)
@@ -387,6 +391,7 @@ namespace MugiSideBrowser
                     // AppBar / AutoHide の完全手動ドラッグ移動を開始
                     _isDragging = true;
                     _isManualDragging = true;
+                    _hasActuallyMoved = false;
                     _dragOriginalMode = _currentMode;
 
                     // ドラッグ開始時のマウス座標（スクリーン座標）
@@ -419,8 +424,19 @@ namespace MugiSideBrowser
                 // マウスの現在位置（スクリーン座標）
                 var mousePoint = new System.Drawing.Point();
                 NativeMethods.GetCursorPos(ref mousePoint);
+                var currentMousePos = new System.Windows.Point(mousePoint.X, mousePoint.Y);
 
-                // 実際に動き出してから配置を解除（一瞬飛ぶのを防ぐため）
+                // 閾値チェック：一定以上動いていない場合は何もしない（クリック時の誤爆防止）
+                if (!_hasActuallyMoved && 
+                    Math.Abs(currentMousePos.X - _dragStartMousePos.X) < 5 && 
+                    Math.Abs(currentMousePos.Y - _dragStartMousePos.Y) < 5)
+                {
+                    return;
+                }
+
+                _hasActuallyMoved = true;
+
+                // 実際に動き出してから配置を解除
                 if (_appBarHelper.IsRegistered)
                 {
                     var helper = new System.Windows.Interop.WindowInteropHelper(this);
@@ -462,10 +478,14 @@ namespace MugiSideBrowser
                     element.ReleaseMouseCapture();
                 }
 
-                // マウスを離した後の処理：最寄りの端にスナップ
-                SnapToNearestEdge(_dragOriginalMode);
+                // 実際に移動していた場合のみ、最寄りの端にスナップして再登録する
+                if (_hasActuallyMoved)
+                {
+                    SnapToNearestEdge(_dragOriginalMode);
+                }
                 
                 _isDragging = false;
+                _hasActuallyMoved = false;
             }
         }
 
@@ -1098,7 +1118,100 @@ namespace MugiSideBrowser
         {
             if (sender is FrameworkElement element && element.DataContext is BookmarkItem item)
             {
-                _activeWebView.Source = new Uri(item.Url);
+                webView.Source = new Uri(item.Url);
+            }
+        }
+
+        // --- メモ機能 ---
+        private bool _isMemoInitialized = false;
+        private readonly string _memoFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MugiSideBrowser", "memo.txt");
+
+        private void LoadMemo()
+        {
+            try
+            {
+                if (File.Exists(_memoFilePath))
+                {
+                    MemoTextBox.Text = File.ReadAllText(_memoFilePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Memo Load Error: {ex.Message}");
+            }
+            _isMemoInitialized = true;
+        }
+
+        private void Memo_Click(object sender, RoutedEventArgs e)
+        {
+            if (MemoSectionRow.Height.Value == 0)
+            {
+                // 表示
+                MemoSectionRow.Height = new GridLength(300);
+                MemoArea.Visibility = Visibility.Visible;
+                MemoSplitter.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                // 非表示
+                // 最大化状態だった場合は戻しておく
+                BrowserSectionRow.Height = new GridLength(1, GridUnitType.Star);
+                AddressBarRow.Height = GridLength.Auto;
+                BookmarkBarRow.Height = GridLength.Auto;
+                
+                MemoMaximizeButton.Content = "";
+                MemoMaximizeButton.ToolTip = "最大化";
+
+                MemoSectionRow.Height = new GridLength(0);
+                MemoArea.Visibility = Visibility.Collapsed;
+                MemoSplitter.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private void MemoMaximize_Click(object sender, RoutedEventArgs e)
+        {
+            if (BrowserSectionRow.Height.Value > 0)
+            {
+                // 最大化
+                BrowserSectionRow.Height = new GridLength(0);
+                AddressBarRow.Height = new GridLength(0);
+                BookmarkBarRow.Height = new GridLength(0);
+                
+                MemoSectionRow.Height = new GridLength(1, GridUnitType.Star);
+                MemoMaximizeButton.Content = "";
+                MemoMaximizeButton.ToolTip = "元に戻す";
+                MemoSplitter.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                // 元に戻す
+                BrowserSectionRow.Height = new GridLength(1, GridUnitType.Star);
+                AddressBarRow.Height = GridLength.Auto;
+                BookmarkBarRow.Height = GridLength.Auto;
+                
+                MemoSectionRow.Height = new GridLength(300);
+                MemoMaximizeButton.Content = "";
+                MemoMaximizeButton.ToolTip = "最大化";
+                MemoSplitter.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void MemoTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!_isMemoInitialized) return;
+            
+            try
+            {
+                string? directory = Path.GetDirectoryName(_memoFilePath);
+                if (directory != null && !Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+                File.WriteAllText(_memoFilePath, MemoTextBox.Text);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Memo Save Error: {ex.Message}");
             }
         }
 
