@@ -124,6 +124,7 @@ namespace MugiSideBrowser
             // AppBar の利用権（鍵）の取得を試みる
             if (TryAcquireAppBarLock())
             {
+                _appBarHelper.ResetMonitorInfo();
                 // 1番目のインスタンス：メインモニターの右端へ
                 _currentMode = DisplayMode.AppBar;
                 _appBarHelper.Edge = NativeMethods.AppBarEdges.Right;
@@ -131,8 +132,6 @@ namespace MugiSideBrowser
                 AlwaysVisibleMenuItem.IsChecked = true;
                 AutoHideMenuItem.IsChecked = false;
                 NormalWindowMenuItem.IsChecked = false;
-                RightDockMenuItem.IsChecked = true;
-                LeftDockMenuItem.IsChecked = false;
 
                 _appBarHelper.Register();
                 UpdateWindowTitle();
@@ -271,7 +270,6 @@ namespace MugiSideBrowser
         {
             if (sender is FrameworkElement element)
             {
-                RefreshMonitorMenu();
 
                 // AppBarの利用権（鍵）が「自分にある」か「誰にもない」かを確認
                 bool isAppBarAvailable = false;
@@ -297,9 +295,6 @@ namespace MugiSideBrowser
                 // 他の誰かが使っている場合はグレーアウト
                 AlwaysVisibleMenuItem.IsEnabled = isAppBarAvailable;
                 AutoHideMenuItem.IsEnabled = isAppBarAvailable;
-                LeftDockMenuItem.IsEnabled = isAppBarAvailable;
-                RightDockMenuItem.IsEnabled = isAppBarAvailable;
-                MonitorSelectMenuItem.IsEnabled = isAppBarAvailable;
 
                 element.ContextMenu.IsOpen = true;
             }
@@ -326,25 +321,27 @@ namespace MugiSideBrowser
                 AutoHideMenuItem.IsChecked = false;
                 NormalWindowMenuItem.IsChecked = false;
                 StopAutoHideTimer();
+
+                // 1. アニメーションを強制停止
+                this.BeginAnimation(Window.WidthProperty, null);
+                this.BeginAnimation(Window.LeftProperty, null);
+                this.BeginAnimation(Window.TopProperty, null);
+
+                // 2. 一旦モニターの中央付近へワープさせて「きれいな状態」にする
+                // これにより、端っこにいた際の中途半端な座標による誤判定を防ぐ
+                var mi_safe = _appBarHelper.CurrentMonitorRect;
+                double dpi_safe = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+                this.Width = _currentFullWidth;
+                this.Left = (mi_safe.Left + (mi_safe.Right - mi_safe.Left) / 2) / dpi_safe - (this.Width / 2);
+                this.Top = (mi_safe.Top + (mi_safe.Bottom - mi_safe.Top) / 2) / dpi_safe - (this.Height / 2);
+
+                // 3. 改めて登録
                 _appBarHelper.Register();
                 this.Topmost = true;
 
-                // AppBarモードでは高さはフル
-                LeftResizeColumn.Width = new GridLength(4);
-                RightResizeColumn.Width = new GridLength(4);
-                BottomResizeRow.Height = new GridLength(0);
-                
-                // 上下位置と高さをリセット
-                var helper = new WindowInteropHelper(this);
-                IntPtr hMonitor = NativeMethods.MonitorFromWindow(helper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
-                var mi = new NativeMethods.MONITORINFO();
-                mi.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
-                if (NativeMethods.GetMonitorInfo(hMonitor, ref mi))
-                {
-                    double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-                    this.Top = mi.rcMonitor.Top / dpi;
-                    this.Height = (mi.rcMonitor.Bottom - mi.rcMonitor.Top) / dpi;
-                }
+                // 上下位置と高さをリセット（Register内でも行われるが、念のため）
+                this.Top = mi_safe.Top / dpi_safe;
+                this.Height = (mi_safe.Bottom - mi_safe.Top) / dpi_safe;
                 
                 // モニター番号を再判定して更新
                 UpdateWindowTitle();
@@ -474,6 +471,7 @@ namespace MugiSideBrowser
 
         private void SnapToNearestEdge(DisplayMode mode)
         {
+            _appBarHelper.ResetMonitorInfo();
             double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
             
             // 現在のウィンドウ中心座標（ピクセル単位）
@@ -490,11 +488,21 @@ namespace MugiSideBrowser
             // 状態を更新
             _currentMode = mode;
             _appBarHelper.Edge = edge;
-            
-            // UIのチェック状態を更新
-            LeftDockMenuItem.IsChecked = (edge == NativeMethods.AppBarEdges.Left);
-            RightDockMenuItem.IsChecked = (edge == NativeMethods.AppBarEdges.Right);
 
+            // リサイズ方向を調整
+            if (edge == NativeMethods.AppBarEdges.Left)
+            {
+                // 左固定時は右端(Column 2)をリサイズ可能にする
+                LeftResizeColumn.Width = new GridLength(0);
+                RightResizeColumn.Width = new GridLength(4);
+            }
+            else
+            {
+                // 右固定時は左端(Column 0)をリサイズ可能にする
+                LeftResizeColumn.Width = new GridLength(4);
+                RightResizeColumn.Width = new GridLength(0);
+            }
+            
             if (mode == DisplayMode.AppBar)
             {
                 _appBarHelper.Register();
@@ -578,8 +586,7 @@ namespace MugiSideBrowser
             else if (!isMouseInWindow && _isSlidOut)
             {
                 // メニューやコンテキストメニューが開いている間は閉じない
-                bool isMenuVisible = (LeftDockMenuItem.Parent is FrameworkElement parent && parent.IsVisible);
-                if (!MonitorSelectMenuItem.IsSubmenuOpen && !isMenuVisible)
+                if (!ToolsMenu.IsOpen)
                 {
                      SlideOut();
                 }
@@ -629,25 +636,21 @@ namespace MugiSideBrowser
         private void AnimateWindow(double targetWidth)
         {
             double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-            var helper = new WindowInteropHelper(this);
-            IntPtr hMonitor = NativeMethods.MonitorFromWindow(helper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
-            var mi = new NativeMethods.MONITORINFO();
-            mi.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
-            if (!NativeMethods.GetMonitorInfo(hMonitor, ref mi)) return;
+            var mi = _appBarHelper.CurrentMonitorRect;
 
             double targetLeft;
             if (_appBarHelper.Edge == NativeMethods.AppBarEdges.Right)
             {
-                targetLeft = (mi.rcMonitor.Right / dpi) - targetWidth;
+                targetLeft = (mi.Right / dpi) - targetWidth;
             }
             else
             {
-                targetLeft = mi.rcMonitor.Left / dpi;
+                targetLeft = mi.Left / dpi;
             }
 
             // ホットコーナーモードでは上下を画面いっぱいにリセットする
-            this.Top = mi.rcMonitor.Top / dpi;
-            this.Height = (mi.rcMonitor.Bottom - mi.rcMonitor.Top) / dpi;
+            this.Top = mi.Top / dpi;
+            this.Height = (mi.Bottom - mi.Top) / dpi;
 
             var duration = TimeSpan.FromMilliseconds(200);
             var ease = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut };
@@ -657,55 +660,6 @@ namespace MugiSideBrowser
 
             this.BeginAnimation(Window.WidthProperty, widthAnim);
             this.BeginAnimation(Window.LeftProperty, leftAnim);
-        }
-
-
-        private void Side_Click(object sender, RoutedEventArgs e)
-        {
-            if (_currentMode == DisplayMode.Normal)
-            {
-                // 自由配置モード：AppBarを解除し、全方向のグリップを有効にする
-                _appBarHelper.Unregister();
-                StopAutoHideTimer();
-                this.Topmost = false;
-                LeftResizeColumn.Width = new GridLength(4);
-                RightResizeColumn.Width = new GridLength(4);
-                BottomResizeRow.Height = new GridLength(4);
-                UpdateWindowTitle();
-                return;
-            }
-
-
-            if (sender == LeftDockMenuItem)
-            {
-                _appBarHelper.Edge = NativeMethods.AppBarEdges.Left;
-                LeftDockMenuItem.IsChecked = true;
-                RightDockMenuItem.IsChecked = false;
-                
-                // 左固定時は右端をリサイズ可能にする
-                LeftResizeColumn.Width = new GridLength(0);
-                RightResizeColumn.Width = new GridLength(4);
-            }
-            else
-            {
-                _appBarHelper.Edge = NativeMethods.AppBarEdges.Right;
-                LeftDockMenuItem.IsChecked = false;
-                RightDockMenuItem.IsChecked = true;
-
-                // 右固定時は左端をリサイズ可能にする
-                LeftResizeColumn.Width = new GridLength(4);
-                RightResizeColumn.Width = new GridLength(0);
-            }
-
-            if (_currentMode == DisplayMode.AppBar)
-            {
-                _appBarHelper.SetPosition();
-            }
-            else
-            {
-                SlideIn();
-            }
-            UpdateWindowTitle();
         }
 
 
@@ -864,58 +818,6 @@ namespace MugiSideBrowser
 
 
 
-
-        private void RefreshMonitorMenu()
-        {
-            MonitorSelectMenuItem.Items.Clear();
-            
-            // 全モニターを列挙してメニューに追加
-            int index = 1;
-            foreach (var screen in System.Windows.Forms.Screen.AllScreens)
-            {
-                var mi = new System.Windows.Controls.MenuItem
-                {
-                    Header = $"モニター {index} {(screen.Primary ? "(メイン)" : "")}",
-                    Tag = screen,
-                    IsChecked = IsWindowOnScreen(screen)
-                };
-                mi.Click += Monitor_Click;
-                MonitorSelectMenuItem.Items.Add(mi);
-                index++;
-            }
-        }
-
-        private bool IsWindowOnScreen(System.Windows.Forms.Screen screen)
-        {
-            var helper = new WindowInteropHelper(this);
-            IntPtr hMonitor = NativeMethods.MonitorFromWindow(helper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
-            
-            var mi = new NativeMethods.MONITORINFO();
-            mi.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
-            if (NativeMethods.GetMonitorInfo(hMonitor, ref mi))
-            {
-                // 物理座標で比較
-                return mi.rcMonitor.Left == screen.Bounds.Left && mi.rcMonitor.Top == screen.Bounds.Top;
-            }
-            return false;
-        }
-
-        private void Monitor_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is System.Windows.Controls.MenuItem mi && mi.Tag is System.Windows.Forms.Screen screen)
-            {
-                // 一旦解除
-                _appBarHelper.Unregister();
-
-                // ウィンドウを対象モニターの作業領域内に移動（AppBar予約前の一時的な配置）
-                double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-                this.Left = screen.WorkingArea.Left / dpi;
-                this.Top = screen.WorkingArea.Top / dpi;
-
-                // 再登録（新しいモニターの座標でSetPositionが走る）
-                _appBarHelper.Register();
-            }
-        }
 
 
         private void UserAgent_Click(object sender, RoutedEventArgs e)
@@ -1147,6 +1049,21 @@ namespace MugiSideBrowser
 
             _bookmarks.Add(newItem);
             BookmarkManager.Save(_bookmarks.ToList());
+        }
+
+        private void CopyUrl_Click(object sender, RoutedEventArgs e)
+        {
+            if (_activeWebView.Source != null)
+            {
+                try
+                {
+                    System.Windows.Clipboard.SetText(_activeWebView.Source.ToString());
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show($"コピーに失敗しました: {ex.Message}", "エラー");
+                }
+            }
         }
 
         private void Bookmark_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)

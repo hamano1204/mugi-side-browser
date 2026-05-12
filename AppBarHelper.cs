@@ -60,6 +60,29 @@ namespace MugiSideBrowser
             _isRegistered = false;
         }
 
+        private NativeMethods.RECT _currentMonitorRect;
+        private bool _hasMonitorInfo = false;
+
+        public NativeMethods.RECT CurrentMonitorRect
+        {
+            get
+            {
+                if (!_hasMonitorInfo)
+                {
+                    var helper = new WindowInteropHelper(_window);
+                    IntPtr hMonitor = NativeMethods.MonitorFromWindow(helper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
+                    var mi = new NativeMethods.MONITORINFO();
+                    mi.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
+                    if (NativeMethods.GetMonitorInfo(hMonitor, ref mi))
+                    {
+                        _currentMonitorRect = mi.rcMonitor;
+                        _hasMonitorInfo = true;
+                    }
+                }
+                return _currentMonitorRect;
+            }
+        }
+
         public void SetPosition()
         {
             if (!_isRegistered) return;
@@ -67,12 +90,23 @@ namespace MugiSideBrowser
             var helper = new WindowInteropHelper(_window);
             double dpi = GetDpiScale();
 
-            // ウィンドウが現在いるモニター、または最適なモニターを取得
-            IntPtr hMonitor = NativeMethods.MonitorFromWindow(helper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
-            var mi = new NativeMethods.MONITORINFO();
-            mi.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
-            
-            if (!NativeMethods.GetMonitorInfo(hMonitor, ref mi)) return;
+            // まだモニター情報がない場合、または最新の情報を取得したい場合に取得
+            if (!_hasMonitorInfo)
+            {
+                IntPtr hMonitor = NativeMethods.MonitorFromWindow(helper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
+                var mi = new NativeMethods.MONITORINFO();
+                mi.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
+                
+                if (NativeMethods.GetMonitorInfo(hMonitor, ref mi))
+                {
+                    _currentMonitorRect = mi.rcMonitor;
+                    _hasMonitorInfo = true;
+                }
+                else
+                {
+                    return;
+                }
+            }
 
             var data = new NativeMethods.APPBARDATA
             {
@@ -84,26 +118,25 @@ namespace MugiSideBrowser
             // 目標とする幅（ピクセル単位）
             int width = (int)(_window.Width * dpi);
             
-            // 選択されたモニターの矩形（rcMonitor = 全体, rcWork = タスクバー等を除いた領域）
-            // AppBarは画面全体の端に予約するため rcMonitor を基準にする
-            data.rc.Top = mi.rcMonitor.Top;
-            data.rc.Bottom = mi.rcMonitor.Bottom;
+            // 保持しているモニター情報を基準にする
+            data.rc.Top = _currentMonitorRect.Top;
+            data.rc.Bottom = _currentMonitorRect.Bottom;
 
             if (Edge == NativeMethods.AppBarEdges.Left)
             {
-                data.rc.Left = mi.rcMonitor.Left;
-                data.rc.Right = mi.rcMonitor.Left + width;
+                data.rc.Left = _currentMonitorRect.Left;
+                data.rc.Right = _currentMonitorRect.Left + width;
             }
             else
             {
-                data.rc.Right = mi.rcMonitor.Right;
-                data.rc.Left = mi.rcMonitor.Right - width;
+                data.rc.Right = _currentMonitorRect.Right;
+                data.rc.Left = _currentMonitorRect.Right - width;
             }
 
             // 1. 領域の問い合わせ
             NativeMethods.SHAppBarMessage((int)NativeMethods.AppBarMessages.QueryPos, ref data);
 
-            // 2. 領域の設定（他AppBarとの重複が調整される）
+            // 2. 領域の設定
             NativeMethods.SHAppBarMessage((int)NativeMethods.AppBarMessages.SetPos, ref data);
 
             // 3. Win32 APIによるウィンドウ移動
@@ -114,6 +147,12 @@ namespace MugiSideBrowser
             _window.Top = data.rc.Top / dpi;
             _window.Width = (data.rc.Right - data.rc.Left) / dpi;
             _window.Height = (data.rc.Bottom - data.rc.Top) / dpi;
+        }
+
+        // モニター情報をリセット（モニターを跨いだ移動時などに呼ぶ）
+        public void ResetMonitorInfo()
+        {
+            _hasMonitorInfo = false;
         }
 
         private double GetDpiScale()
