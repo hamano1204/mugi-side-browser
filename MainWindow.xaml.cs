@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -22,11 +23,13 @@ namespace MugiSideBrowser
         private bool _isBottomInitialized = false;
         private bool _isMobileMode = false;
         private string? _defaultUserAgent = null;
+        private bool _useExternalBrowserOnCtrlClick = true;
         private const string MobileUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1";
         private bool _isFakeMinimized = false;
         private double _savedNormalLeft;
         private double _savedNormalTop;
         private double _resizeStartHeight;
+        private System.Threading.Mutex? _appBarLockMutex;
         private enum DisplayMode
         {
             AppBar,
@@ -36,6 +39,14 @@ namespace MugiSideBrowser
         private DisplayMode _currentMode = DisplayMode.AppBar;
         private System.Windows.Threading.DispatcherTimer? _mouseTimer;
         private bool _isSlidOut = false;
+        private bool _isDragging = false;
+        
+        // マニュアルドラッグ用変数
+        private bool _isManualDragging = false;
+        private System.Windows.Point _dragStartMousePos;
+        private System.Windows.Point _dragStartWindowPos;
+        private DisplayMode _dragOriginalMode;
+
         private const double FullWidthDefault = 400;
         private double _currentFullWidth = FullWidthDefault;
         private const double TriggerWidth = 2;
@@ -65,6 +76,94 @@ namespace MugiSideBrowser
             BookmarkList.ItemsSource = _bookmarks;
             LoadBookmarks();
         }
+
+        private void UpdateWindowTitle()
+        {
+            string modeName = _currentMode switch
+            {
+                DisplayMode.AppBar => "常時表示",
+                DisplayMode.AutoHide => "自動隠し",
+                DisplayMode.Normal => "自由配置",
+                _ => "不明"
+            };
+
+            this.Title = $"MugiSideBrowser [{modeName}]";
+        }
+
+        private bool TryAcquireAppBarLock()
+        {
+            if (_appBarLockMutex != null) return true;
+
+            try
+            {
+                bool createdNew;
+                var mutex = new System.Threading.Mutex(false, "Global\\MugiSideBrowser_AppBarGlobalLock", out createdNew);
+                if (mutex.WaitOne(0))
+                {
+                    _appBarLockMutex = mutex;
+                    return true;
+                }
+                mutex.Dispose();
+            }
+            catch { }
+            return false;
+        }
+
+        private void ReleaseAppBarLock()
+        {
+            if (_appBarLockMutex != null)
+            {
+                try { _appBarLockMutex.ReleaseMutex(); } catch { }
+                _appBarLockMutex.Dispose();
+                _appBarLockMutex = null;
+            }
+        }
+
+        private void AutoAllocatePosition()
+        {
+            // AppBar の利用権（鍵）の取得を試みる
+            if (TryAcquireAppBarLock())
+            {
+                // 1番目のインスタンス：メインモニターの右端へ
+                _currentMode = DisplayMode.AppBar;
+                _appBarHelper.Edge = NativeMethods.AppBarEdges.Right;
+                
+                AlwaysVisibleMenuItem.IsChecked = true;
+                AutoHideMenuItem.IsChecked = false;
+                NormalWindowMenuItem.IsChecked = false;
+                RightDockMenuItem.IsChecked = true;
+                LeftDockMenuItem.IsChecked = false;
+
+                _appBarHelper.Register();
+                UpdateWindowTitle();
+            }
+            else
+            {
+                // 2番目以降：通常ウィンドウとして起動
+                SetToNormalMode();
+            }
+        }
+
+        private void SetToNormalMode()
+        {
+            _currentMode = DisplayMode.Normal;
+            AlwaysVisibleMenuItem.IsChecked = false;
+            AutoHideMenuItem.IsChecked = false;
+            NormalWindowMenuItem.IsChecked = true;
+            
+            _appBarHelper.Unregister();
+            ReleaseAppBarLock();
+            StopAutoHideTimer();
+            
+            this.Topmost = false;
+            LeftResizeColumn.Width = new GridLength(4);
+            RightResizeColumn.Width = new GridLength(4);
+            BottomResizeRow.Height = new GridLength(4);
+            
+            UpdateWindowTitle();
+        }
+
+
 
         private void MainWindow_StateChanged(object? sender, EventArgs e)
         {
@@ -173,6 +272,35 @@ namespace MugiSideBrowser
             if (sender is FrameworkElement element)
             {
                 RefreshMonitorMenu();
+
+                // AppBarの利用権（鍵）が「自分にある」か「誰にもない」かを確認
+                bool isAppBarAvailable = false;
+                if (_appBarLockMutex != null)
+                {
+                    isAppBarAvailable = true; // 自分が持っている
+                }
+                else
+                {
+                    try
+                    {
+                        var mutex = new System.Threading.Mutex(false, "Global\\MugiSideBrowser_AppBarGlobalLock");
+                        if (mutex.WaitOne(0))
+                        {
+                            isAppBarAvailable = true; // 誰も持っていない（すぐ手放す）
+                            mutex.ReleaseMutex();
+                        }
+                        mutex.Dispose();
+                    }
+                    catch { }
+                }
+
+                // 他の誰かが使っている場合はグレーアウト
+                AlwaysVisibleMenuItem.IsEnabled = isAppBarAvailable;
+                AutoHideMenuItem.IsEnabled = isAppBarAvailable;
+                LeftDockMenuItem.IsEnabled = isAppBarAvailable;
+                RightDockMenuItem.IsEnabled = isAppBarAvailable;
+                MonitorSelectMenuItem.IsEnabled = isAppBarAvailable;
+
                 element.ContextMenu.IsOpen = true;
             }
         }
@@ -185,12 +313,19 @@ namespace MugiSideBrowser
 
             if (sender == AlwaysVisibleMenuItem)
             {
+                if (!TryAcquireAppBarLock())
+                {
+                    // 鍵が取れなければ切り替えを阻止
+                    NormalWindowMenuItem.IsChecked = true;
+                    AlwaysVisibleMenuItem.IsChecked = false;
+                    return;
+                }
+
                 _currentMode = DisplayMode.AppBar;
                 AlwaysVisibleMenuItem.IsChecked = true;
                 AutoHideMenuItem.IsChecked = false;
                 NormalWindowMenuItem.IsChecked = false;
                 StopAutoHideTimer();
-                _currentMode = DisplayMode.AppBar;
                 _appBarHelper.Register();
                 this.Topmost = true;
 
@@ -210,28 +345,23 @@ namespace MugiSideBrowser
                     this.Top = mi.rcMonitor.Top / dpi;
                     this.Height = (mi.rcMonitor.Bottom - mi.rcMonitor.Top) / dpi;
                 }
+                
+                // モニター番号を再判定して更新
+                UpdateWindowTitle();
             }
             else if (sender == NormalWindowMenuItem)
             {
-                _currentMode = DisplayMode.Normal;
-                AlwaysVisibleMenuItem.IsChecked = false;
-                AutoHideMenuItem.IsChecked = false;
-                NormalWindowMenuItem.IsChecked = true;
-
-                _appBarHelper.Unregister();
-                StopAutoHideTimer();
-                this.Topmost = false;
-
-                // 自由配置モードでは上下左右すべての端でリサイズできるようにする
-                LeftResizeColumn.Width = new GridLength(4);
-                RightResizeColumn.Width = new GridLength(4);
-                BottomResizeRow.Height = new GridLength(4);
-                
-                // 位置を少し中央寄りに移動（端に張り付いていると分かりにくいため）
-                this.Left += (_appBarHelper.Edge == NativeMethods.AppBarEdges.Left ? 20 : -20);
+                SetToNormalMode();
             }
             else
             {
+                if (!TryAcquireAppBarLock())
+                {
+                    NormalWindowMenuItem.IsChecked = true;
+                    AutoHideMenuItem.IsChecked = false;
+                    return;
+                }
+
                 _currentMode = DisplayMode.AutoHide;
                 AlwaysVisibleMenuItem.IsChecked = false;
                 AutoHideMenuItem.IsChecked = true;
@@ -240,8 +370,10 @@ namespace MugiSideBrowser
                 this.Topmost = true;
                 BottomResizeRow.Height = new GridLength(0);
                 StartAutoHideTimer();
+                UpdateWindowTitle();
             }
         }
+
 
 
 
@@ -249,12 +381,134 @@ namespace MugiSideBrowser
         {
             if (e.ChangedButton == System.Windows.Input.MouseButton.Left)
             {
-                // 自由配置モードの時だけドラッグ移動を許可する
                 if (_currentMode == DisplayMode.Normal)
                 {
                     this.DragMove();
                 }
+                else
+                {
+                    // AppBar / AutoHide の完全手動ドラッグ移動を開始
+                    _isDragging = true;
+                    _isManualDragging = true;
+                    _dragOriginalMode = _currentMode;
+
+                    // ドラッグ開始時のマウス座標（スクリーン座標）
+                    var mousePoint = new System.Drawing.Point();
+                    NativeMethods.GetCursorPos(ref mousePoint);
+                    _dragStartMousePos = new System.Windows.Point(mousePoint.X, mousePoint.Y);
+
+                    // ドラッグ開始時のウィンドウ座標（WPF論理座標）
+                    _dragStartWindowPos = new System.Windows.Point(this.Left, this.Top);
+
+                    // アニメーションを停止して競合を防ぐ
+                    this.BeginAnimation(Window.LeftProperty, null);
+                    this.BeginAnimation(Window.TopProperty, null);
+
+                    // イベントを捕捉（ウィンドウ外に出ても追従するように）
+                    if (sender is UIElement element)
+                    {
+                        element.CaptureMouse();
+                    }
+                }
             }
+        }
+
+        private void TitleBar_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (_isManualDragging)
+            {
+                double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+
+                // マウスの現在位置（スクリーン座標）
+                var mousePoint = new System.Drawing.Point();
+                NativeMethods.GetCursorPos(ref mousePoint);
+
+                // 実際に動き出してから配置を解除（一瞬飛ぶのを防ぐため）
+                if (_appBarHelper.IsRegistered)
+                {
+                    var helper = new System.Windows.Interop.WindowInteropHelper(this);
+
+                    // 解除「直前」にWin32レベルで現在の位置（ドラッグ開始位置）に叩き込む
+                    // これにより、OSが解除時に以前の場所（右側など）を想起する隙を与えない
+                    NativeMethods.MoveWindow(helper.Handle, 
+                        (int)(_dragStartWindowPos.X * dpi), 
+                        (int)(_dragStartWindowPos.Y * dpi), 
+                        (int)(this.Width * dpi), 
+                        (int)(this.Height * dpi), 
+                        true);
+
+                    _appBarHelper.Unregister();
+
+                    // WPFの状態も同期
+                    this.Left = _dragStartWindowPos.X;
+                    this.Top = _dragStartWindowPos.Y;
+                }
+
+                // 移動量（WPF論理座標に変換）
+                double deltaX = (mousePoint.X - _dragStartMousePos.X) / dpi;
+                double deltaY = (mousePoint.Y - _dragStartMousePos.Y) / dpi;
+
+                // ウィンドウを移動
+                this.Left = _dragStartWindowPos.X + deltaX;
+                this.Top = _dragStartWindowPos.Y + deltaY;
+            }
+        }
+
+        private void TitleBar_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (_isManualDragging && e.ChangedButton == System.Windows.Input.MouseButton.Left)
+            {
+                _isManualDragging = false;
+
+                if (sender is UIElement element)
+                {
+                    element.ReleaseMouseCapture();
+                }
+
+                // マウスを離した後の処理：最寄りの端にスナップ
+                SnapToNearestEdge(_dragOriginalMode);
+                
+                _isDragging = false;
+            }
+        }
+
+        private void SnapToNearestEdge(DisplayMode mode)
+        {
+            double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+            
+            // 現在のウィンドウ中心座標（ピクセル単位）
+            double centerX = (this.Left + this.Width / 2) * dpi;
+            double centerY = (this.Top + this.Height / 2) * dpi;
+            
+            // 最寄りのモニターを探す
+            var screen = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point((int)centerX, (int)centerY));
+
+            // モニターの中心から見て左右どちらに近いか
+            double screenCenterX = screen.Bounds.Left + (screen.Bounds.Width / 2);
+            var edge = (centerX > screenCenterX) ? NativeMethods.AppBarEdges.Right : NativeMethods.AppBarEdges.Left;
+
+            // 状態を更新
+            _currentMode = mode;
+            _appBarHelper.Edge = edge;
+            
+            // UIのチェック状態を更新
+            LeftDockMenuItem.IsChecked = (edge == NativeMethods.AppBarEdges.Left);
+            RightDockMenuItem.IsChecked = (edge == NativeMethods.AppBarEdges.Right);
+
+            if (mode == DisplayMode.AppBar)
+            {
+                _appBarHelper.Register();
+                this.Topmost = true;
+            }
+            else if (mode == DisplayMode.AutoHide)
+            {
+                // AutoHide の場合は再度隠した状態からスタート
+                _isSlidOut = true; 
+                StartAutoHideTimer();
+                this.Topmost = true;
+            }
+            
+            UpdateWindowTitle();
         }
 
         private void StartAutoHideTimer()
@@ -282,7 +536,7 @@ namespace MugiSideBrowser
 
         private void MouseTimer_Tick(object? sender, EventArgs e)
         {
-            if (_currentMode != DisplayMode.AutoHide || _isFakeMinimized) return;
+            if (_currentMode != DisplayMode.AutoHide || _isFakeMinimized || _isDragging) return;
 
             // マウスの物理座標を取得
             var point = new System.Drawing.Point();
@@ -417,8 +671,10 @@ namespace MugiSideBrowser
                 LeftResizeColumn.Width = new GridLength(4);
                 RightResizeColumn.Width = new GridLength(4);
                 BottomResizeRow.Height = new GridLength(4);
+                UpdateWindowTitle();
                 return;
             }
+
 
             if (sender == LeftDockMenuItem)
             {
@@ -449,7 +705,9 @@ namespace MugiSideBrowser
             {
                 SlideIn();
             }
+            UpdateWindowTitle();
         }
+
 
         private void ResizeGrip_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
@@ -695,22 +953,26 @@ namespace MugiSideBrowser
             _activeWebView.Reload();
         }
 
+        private void ExternalBrowser_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.MenuItem menuItem)
+            {
+                _useExternalBrowserOnCtrlClick = menuItem.IsChecked;
+            }
+        }
+
 
         private void MainWindow_SourceInitialized(object? sender, EventArgs e)
         {
-            try
-            {
-                _appBarHelper.Register();
-            }
-            catch (Exception ex)
-            {
-                System.Windows.MessageBox.Show($"AppBar の登録に失敗しました:\n{ex.Message}", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            // 起動時の自動配置（ハンドルが生成された後に行う）
+            AutoAllocatePosition();
         }
+
 
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             _appBarHelper.Unregister();
+            ReleaseAppBarLock();
         }
 
         private async void InitializeWebView()
@@ -719,6 +981,7 @@ namespace MugiSideBrowser
             {
                 await webView.EnsureCoreWebView2Async();
                 webView.CoreWebView2.SourceChanged += CoreWebView2_SourceChanged;
+                webView.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
                 webView.Source = new Uri("https://www.google.com");
             }
             catch (Exception ex)
@@ -735,6 +998,29 @@ namespace MugiSideBrowser
             }
         }
 
+        private void CoreWebView2_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
+        {
+            if (_useExternalBrowserOnCtrlClick)
+            {
+                // オプションが有効なら、すべての新しいウィンドウリクエストを標準ブラウザで開く
+                // (Ctrl+クリック、ミドルクリック、target="_blank" など)
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = e.Uri,
+                        UseShellExecute = true
+                    });
+                    // WebView2内での遷移をキャンセル
+                    e.Handled = true;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to open external browser: {ex.Message}");
+                }
+            }
+        }
+
         private async void InitializeBottomWebView()
         {
             if (_isBottomInitialized) return;
@@ -742,6 +1028,7 @@ namespace MugiSideBrowser
             {
                 await webViewBottom.EnsureCoreWebView2Async();
                 webViewBottom.CoreWebView2.SourceChanged += CoreWebView2_SourceChanged;
+                webViewBottom.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
                 
                 // 現在のUserAgent設定を適用
                 if (_defaultUserAgent != null)

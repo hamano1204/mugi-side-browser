@@ -9,6 +9,7 @@ namespace MugiSideBrowser
     {
         private readonly Window _window;
         private bool _isRegistered;
+        public bool IsRegistered => _isRegistered;
         private readonly int _uCallbackMessage;
         public NativeMethods.AppBarEdges Edge { get; set; } = NativeMethods.AppBarEdges.Right;
 

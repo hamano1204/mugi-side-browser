@@ -71,7 +71,10 @@
             </Grid.RowDefinitions>
 
             <!-- Custom Title Bar / Toolbar -->
-            <Border Grid.Row="0" Background="#2D2D2D" Padding="8,4" MouseLeftButtonDown="TitleBar_MouseDown">
+            <Border Grid.Row="0" Background="#2D2D2D" Padding="8,4" 
+                    MouseLeftButtonDown="TitleBar_MouseDown" 
+                    MouseMove="TitleBar_MouseMove" 
+                    MouseLeftButtonUp="TitleBar_MouseUp">
                 <DockPanel>
                     <!-- Left: Navigation -->
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
@@ -106,6 +109,11 @@
                                 <MenuItem x:Name="UserAgentMenuItem" Header="モバイル表示に切替" Click="UserAgent_Click">
                                     <MenuItem.Icon>
                                         <TextBlock x:Name="UserAgentMenuIcon" Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem x:Name="ExternalBrowserMenuItem" Header="新しいウィンドウを標準ブラウザで開く" IsCheckable="True" IsChecked="True" Click="ExternalBrowser_Click">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                                     </MenuItem.Icon>
                                 </MenuItem>
                                 <Separator/>
