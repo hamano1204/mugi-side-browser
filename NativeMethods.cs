@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace MugiSideBrowser
 {
-    internal static class NativeMethods
+    public static class NativeMethods
     {
         [StructLayout(LayoutKind.Sequential)]
         public struct RECT

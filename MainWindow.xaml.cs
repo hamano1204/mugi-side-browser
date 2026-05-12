@@ -5,6 +5,9 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Media;
+using System.Runtime.InteropServices;
 using Microsoft.Web.WebView2.Core;
 
 namespace MugiSideBrowser
@@ -13,7 +16,7 @@ namespace MugiSideBrowser
     {
         private AppBarHelper _appBarHelper;
         private ObservableCollection<BookmarkItem> _bookmarks = new();
-        private Point _dragStartPoint;
+        private System.Windows.Point _dragStartPoint;
         private const string BookmarkDataFormat = "MugiSideBrowser.BookmarkItem";
         private Microsoft.Web.WebView2.Wpf.WebView2 _activeWebView;
         private bool _isBottomInitialized = false;
@@ -98,7 +101,7 @@ namespace MugiSideBrowser
             foreach (var item in list) _bookmarks.Add(item);
         }
 
-        private void BookmarkScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        private void BookmarkScrollViewer_PreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
             if (sender is ScrollViewer scrollViewer)
             {
@@ -142,7 +145,7 @@ namespace MugiSideBrowser
             int index = 1;
             foreach (var screen in System.Windows.Forms.Screen.AllScreens)
             {
-                var mi = new MenuItem
+                var mi = new System.Windows.Controls.MenuItem
                 {
                     Header = $"モニター {index} {(screen.Primary ? "(メイン)" : "")}",
                     Tag = screen,
@@ -171,7 +174,7 @@ namespace MugiSideBrowser
 
         private void Monitor_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is MenuItem mi && mi.Tag is System.Windows.Forms.Screen screen)
+            if (sender is System.Windows.Controls.MenuItem mi && mi.Tag is System.Windows.Forms.Screen screen)
             {
                 // 一旦解除
                 _appBarHelper.Unregister();
@@ -231,7 +234,7 @@ namespace MugiSideBrowser
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"AppBar の登録に失敗しました:\n{ex.Message}", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"AppBar の登録に失敗しました:\n{ex.Message}", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -250,7 +253,7 @@ namespace MugiSideBrowser
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"WebView2 の初期化に失敗しました。WebView2 ランタイムがインストールされているか確認してください。\n\n詳細: {ex.Message}", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"WebView2 の初期化に失敗しました。WebView2 ランタイムがインストールされているか確認してください。\n\n詳細: {ex.Message}", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -281,7 +284,7 @@ namespace MugiSideBrowser
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"下部 WebView2 の初期化に失敗しました:\n{ex.Message}", "エラー");
+                System.Windows.MessageBox.Show($"下部 WebView2 の初期化に失敗しました:\n{ex.Message}", "エラー");
             }
         }
 
@@ -389,7 +392,7 @@ namespace MugiSideBrowser
             BookmarkManager.Save(_bookmarks.ToList());
         }
 
-        private void Bookmark_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        private void Bookmark_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (sender is FrameworkElement element && element.DataContext is BookmarkItem item)
             {
@@ -397,16 +400,16 @@ namespace MugiSideBrowser
             }
         }
 
-        private void Bookmark_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void Bookmark_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             _dragStartPoint = e.GetPosition(null);
         }
 
-        private void Bookmark_MouseMove(object sender, MouseEventArgs e)
+        private void Bookmark_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)
             {
-                Point mousePos = e.GetPosition(null);
+                System.Windows.Point mousePos = e.GetPosition(null);
                 Vector diff = _dragStartPoint - mousePos;
 
                 if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
@@ -414,27 +417,27 @@ namespace MugiSideBrowser
                 {
                     if (sender is FrameworkElement element && element.DataContext is BookmarkItem item)
                     {
-                        DataObject dragData = new DataObject(BookmarkDataFormat, item);
-                        DragDrop.DoDragDrop(element, dragData, DragDropEffects.Move);
+                        System.Windows.DataObject dragData = new System.Windows.DataObject(BookmarkDataFormat, item);
+                        DragDrop.DoDragDrop(element, dragData, System.Windows.DragDropEffects.Move);
                     }
                 }
             }
         }
 
-        private void Bookmark_DragOver(object sender, DragEventArgs e)
+        private void Bookmark_DragOver(object sender, System.Windows.DragEventArgs e)
         {
             if (!e.Data.GetDataPresent(BookmarkDataFormat))
             {
-                e.Effects = DragDropEffects.None;
+                e.Effects = System.Windows.DragDropEffects.None;
             }
             else
             {
-                e.Effects = DragDropEffects.Move;
+                e.Effects = System.Windows.DragDropEffects.Move;
             }
             e.Handled = true;
         }
 
-        private void Bookmark_Drop(object sender, DragEventArgs e)
+        private void Bookmark_Drop(object sender, System.Windows.DragEventArgs e)
         {
             if (e.Data.GetDataPresent(BookmarkDataFormat))
             {
@@ -458,7 +461,7 @@ namespace MugiSideBrowser
 
         private void DeleteBookmark_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is MenuItem menuItem && menuItem.DataContext is BookmarkItem item)
+            if (sender is System.Windows.Controls.MenuItem menuItem && menuItem.DataContext is BookmarkItem item)
             {
                 _bookmarks.Remove(item);
                 BookmarkManager.Save(_bookmarks.ToList());
@@ -466,7 +469,7 @@ namespace MugiSideBrowser
         }
 
 
-        private void UrlTextBox_KeyDown(object sender, KeyEventArgs e)
+        private void UrlTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
