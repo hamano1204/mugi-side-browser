@@ -87,9 +87,9 @@
                                             <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
-                                    <MenuItem x:Name="UserAgentMenuItem" Header="デスクトップ表示に切替" Click="UserAgent_Click">
+                                    <MenuItem x:Name="UserAgentMenuItem" Header="モバイル表示に切替" Click="UserAgent_Click">
                                         <MenuItem.Icon>
-                                            <TextBlock x:Name="UserAgentMenuIcon" Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="UserAgentMenuIcon" Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
                                     <MenuItem x:Name="ExternalBrowserMenuItem" Header="新しいウィンドウを標準ブラウザで開く" IsCheckable="True" IsChecked="True" Click="ExternalBrowser_Click">
@@ -102,11 +102,7 @@
                                             <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
-                                    <MenuItem Header="メモ" Click="Memo_Click">
-                                        <MenuItem.Icon>
-                                            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                        </MenuItem.Icon>
-                                    </MenuItem>
+
                                     <Separator/>
                                     <MenuItem Header="表示モード">
                                         <MenuItem.Icon>
@@ -211,57 +207,20 @@
                 </ScrollViewer>
             </Border>
 
-            <!-- Main Content Area -->
+            <!-- Main Content Area (Browser Views Group) -->
             <Grid Grid.Row="3">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="*" x:Name="BrowserSectionRow"/>
-                    <RowDefinition Height="Auto" x:Name="MemoSplitterRow"/>
-                    <RowDefinition Height="0" x:Name="MemoSectionRow"/>
+                    <RowDefinition Height="*" x:Name="TopRow"/>
+                    <RowDefinition Height="Auto" x:Name="SplitterRow"/>
+                    <RowDefinition Height="0" x:Name="BottomRow"/>
                 </Grid.RowDefinitions>
 
-                <!-- Browser Views Group -->
-                <Grid Grid.Row="0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*" x:Name="TopRow"/>
-                        <RowDefinition Height="Auto" x:Name="SplitterRow"/>
-                        <RowDefinition Height="0" x:Name="BottomRow"/>
-                    </Grid.RowDefinitions>
+                <wv2:WebView2 x:Name="webView" Grid.Row="0" Margin="0" GotFocus="WebView_GotFocus"/>
 
-                    <wv2:WebView2 x:Name="webView" Grid.Row="0" Margin="0" GotFocus="WebView_GotFocus"/>
+                <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="#333" 
+                              Visibility="Collapsed" x:Name="VerticalSplitter" ShowsPreview="True"/>
 
-                    <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="#333" 
-                                  Visibility="Collapsed" x:Name="VerticalSplitter" ShowsPreview="True"/>
-
-                    <wv2:WebView2 x:Name="webViewBottom" Grid.Row="2" Margin="0" Visibility="Collapsed" GotFocus="WebView_GotFocus"/>
-                </Grid>
-
-                <!-- Memo Splitter (Resizes BrowserSection vs MemoSection) -->
-                <GridSplitter x:Name="MemoSplitter" Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="#333" 
-                              Visibility="Collapsed" ShowsPreview="True" ResizeBehavior="PreviousAndNext"/>
-
-                <!-- Memo Area -->
-                <Grid x:Name="MemoArea" Grid.Row="2" Background="#1E1E1E" Visibility="Collapsed">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <Border Background="#252525" Padding="8,4" BorderBrush="#333" BorderThickness="0,1,0,1">
-                        <DockPanel>
-                            <TextBlock Text="メモ" VerticalAlignment="Center" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button x:Name="MemoMaximizeButton" Content="" Style="{StaticResource ToolbarButtonStyle}" 
-                                        Width="20" Height="20" FontSize="10" Click="MemoMaximize_Click" ToolTip="最大化"/>
-                                <Button Content="" Style="{StaticResource ToolbarButtonStyle}" 
-                                        Width="20" Height="20" FontSize="10" Click="Memo_Click" ToolTip="閉じる"/>
-                            </StackPanel>
-                        </DockPanel>
-                    </Border>
-                    <TextBox x:Name="MemoTextBox" Grid.Row="1" Background="#1E1E1E" Foreground="White" 
-                             BorderThickness="0" Padding="8" AcceptsReturn="True" AcceptsTab="True" 
-                             TextWrapping="Wrap"
-                             VerticalScrollBarVisibility="Auto" TextChanged="MemoTextBox_TextChanged"
-                             FontSize="13" FontFamily="Consolas, Meiryo" CaretBrush="White"/>
-                </Grid>
+                <wv2:WebView2 x:Name="webViewBottom" Grid.Row="2" Margin="0" Visibility="Collapsed" GotFocus="WebView_GotFocus"/>
             </Grid>
         </Grid>
 

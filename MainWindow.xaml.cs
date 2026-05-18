@@ -22,7 +22,7 @@ namespace MugiSideBrowser
         private const string BookmarkDataFormat = "MugiSideBrowser.BookmarkItem";
         private Microsoft.Web.WebView2.Wpf.WebView2 _activeWebView;
         private bool _isBottomInitialized = false;
-        private bool _isMobileMode = true;
+        private bool _isMobileMode = false;
         private string? _defaultUserAgent = null;
         private bool _useExternalBrowserOnCtrlClick = true;
         private const string MobileUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1";
@@ -76,7 +76,6 @@ namespace MugiSideBrowser
 
             BookmarkList.ItemsSource = _bookmarks;
             LoadBookmarks();
-            LoadMemo();
         }
 
         private void UpdateWindowTitle()
@@ -1122,98 +1121,6 @@ namespace MugiSideBrowser
             }
         }
 
-        // --- メモ機能 ---
-        private bool _isMemoInitialized = false;
-        private readonly string _memoFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MugiSideBrowser", "memo.txt");
-
-        private void LoadMemo()
-        {
-            try
-            {
-                if (File.Exists(_memoFilePath))
-                {
-                    MemoTextBox.Text = File.ReadAllText(_memoFilePath);
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Memo Load Error: {ex.Message}");
-            }
-            _isMemoInitialized = true;
-        }
-
-        private void Memo_Click(object sender, RoutedEventArgs e)
-        {
-            if (MemoSectionRow.Height.Value == 0)
-            {
-                // 表示
-                MemoSectionRow.Height = new GridLength(300);
-                MemoArea.Visibility = Visibility.Visible;
-                MemoSplitter.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                // 非表示
-                // 最大化状態だった場合は戻しておく
-                BrowserSectionRow.Height = new GridLength(1, GridUnitType.Star);
-                AddressBarRow.Height = GridLength.Auto;
-                BookmarkBarRow.Height = GridLength.Auto;
-                
-                MemoMaximizeButton.Content = "";
-                MemoMaximizeButton.ToolTip = "最大化";
-
-                MemoSectionRow.Height = new GridLength(0);
-                MemoArea.Visibility = Visibility.Collapsed;
-                MemoSplitter.Visibility = Visibility.Collapsed;
-            }
-        }
-
-        private void MemoMaximize_Click(object sender, RoutedEventArgs e)
-        {
-            if (BrowserSectionRow.Height.Value > 0)
-            {
-                // 最大化
-                BrowserSectionRow.Height = new GridLength(0);
-                AddressBarRow.Height = new GridLength(0);
-                BookmarkBarRow.Height = new GridLength(0);
-                
-                MemoSectionRow.Height = new GridLength(1, GridUnitType.Star);
-                MemoMaximizeButton.Content = "";
-                MemoMaximizeButton.ToolTip = "元に戻す";
-                MemoSplitter.Visibility = Visibility.Collapsed;
-            }
-            else
-            {
-                // 元に戻す
-                BrowserSectionRow.Height = new GridLength(1, GridUnitType.Star);
-                AddressBarRow.Height = GridLength.Auto;
-                BookmarkBarRow.Height = GridLength.Auto;
-                
-                MemoSectionRow.Height = new GridLength(300);
-                MemoMaximizeButton.Content = "";
-                MemoMaximizeButton.ToolTip = "最大化";
-                MemoSplitter.Visibility = Visibility.Visible;
-            }
-        }
-
-        private void MemoTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (!_isMemoInitialized) return;
-            
-            try
-            {
-                string? directory = Path.GetDirectoryName(_memoFilePath);
-                if (directory != null && !Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-                File.WriteAllText(_memoFilePath, MemoTextBox.Text);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Memo Save Error: {ex.Message}");
-            }
-        }
 
         private void Bookmark_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
