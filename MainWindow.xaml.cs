@@ -301,6 +301,14 @@ namespace MugiSideBrowser
             }
         }
 
+        private void PageTools_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement element)
+            {
+                element.ContextMenu.IsOpen = true;
+            }
+        }
+
         private void DisplayMode_Click(object sender, RoutedEventArgs e)
         {
             // モード切替前にアニメーションを完全に停止させる
@@ -605,7 +613,7 @@ namespace MugiSideBrowser
             else if (!isMouseInWindow && _isSlidOut)
             {
                 // メニューやコンテキストメニューが開いている間は閉じない
-                if (!ToolsMenu.IsOpen)
+                if (!ToolsMenu.IsOpen && !PageToolsMenu.IsOpen)
                 {
                      SlideOut();
                 }
