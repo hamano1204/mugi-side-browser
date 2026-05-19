@@ -11,13 +11,16 @@ using System.Windows.Media;
 using System.Runtime.InteropServices;
 using Microsoft.Web.WebView2.Core;
 using System.IO;
+using MugiSideBrowser.Services;
 
 namespace MugiSideBrowser
 {
     public partial class MainWindow : Window
     {
         private AppBarHelper _appBarHelper;
-        private ObservableCollection<BookmarkItem> _bookmarks = new();
+        private BookmarkService _bookmarkService;
+        private System.Windows.Forms.NotifyIcon? _notifyIcon;
+        private bool _isExitingFromTray = false;
         private System.Windows.Point _dragStartPoint;
         private const string BookmarkDataFormat = "MugiSideBrowser.BookmarkItem";
         private Microsoft.Web.WebView2.Wpf.WebView2 _activeWebView;
@@ -74,8 +77,15 @@ namespace MugiSideBrowser
             
             InitializeWebView();
 
-            BookmarkList.ItemsSource = _bookmarks;
-            LoadBookmarks();
+            _bookmarkService = new BookmarkService();
+            BookmarkList.ItemsSource = _bookmarkService.Bookmarks;
+            InitializeBookmarksAsync();
+            InitializeNotifyIcon();
+        }
+
+        private async void InitializeBookmarksAsync()
+        {
+            await _bookmarkService.InitializeAsync();
         }
 
         private void UpdateWindowTitle()
@@ -133,6 +143,7 @@ namespace MugiSideBrowser
                 AlwaysVisibleMenuItem.IsChecked = true;
                 AutoHideMenuItem.IsChecked = false;
                 NormalWindowMenuItem.IsChecked = false;
+                this.ShowInTaskbar = false;
 
                 _appBarHelper.Register();
                 UpdateWindowTitle();
@@ -156,6 +167,7 @@ namespace MugiSideBrowser
             StopAutoHideTimer();
             
             this.Topmost = false;
+            this.ShowInTaskbar = true;
             LeftResizeColumn.Width = new GridLength(4);
             RightResizeColumn.Width = new GridLength(4);
             BottomResizeRow.Height = new GridLength(4);
@@ -250,12 +262,7 @@ namespace MugiSideBrowser
 
 
 
-        private void LoadBookmarks()
-        {
-            var list = BookmarkManager.Load();
-            _bookmarks.Clear();
-            foreach (var item in list) _bookmarks.Add(item);
-        }
+
 
         private void BookmarkScrollViewer_PreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
@@ -329,6 +336,7 @@ namespace MugiSideBrowser
                 AlwaysVisibleMenuItem.IsChecked = true;
                 AutoHideMenuItem.IsChecked = false;
                 NormalWindowMenuItem.IsChecked = false;
+                this.ShowInTaskbar = false;
                 StopAutoHideTimer();
 
                 // 1. アニメーションを強制停止
@@ -374,6 +382,7 @@ namespace MugiSideBrowser
                 NormalWindowMenuItem.IsChecked = false;
                 _appBarHelper.Unregister();
                 this.Topmost = true;
+                this.ShowInTaskbar = false;
                 BottomResizeRow.Height = new GridLength(0);
                 StartAutoHideTimer();
                 UpdateWindowTitle();
@@ -908,8 +917,21 @@ namespace MugiSideBrowser
 
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
-            _appBarHelper.Unregister();
-            ReleaseAppBarLock();
+            if (!_isExitingFromTray)
+            {
+                e.Cancel = true;
+                HideToTray();
+            }
+            else
+            {
+                if (_notifyIcon != null)
+                {
+                    _notifyIcon.Visible = false;
+                    _notifyIcon.Dispose();
+                }
+                _appBarHelper.Unregister();
+                ReleaseAppBarLock();
+            }
         }
 
         private async void InitializeWebView()
@@ -1054,12 +1076,6 @@ namespace MugiSideBrowser
 
             if (string.IsNullOrEmpty(title)) title = url;
 
-            // すでに登録されているか確認
-            if (_bookmarks.Any(b => b.Url == url))
-            {
-                return;
-            }
-
             var newItem = new BookmarkItem { Title = title, Url = url };
 
             // WebView2からアイコンURLの取得を試みる
@@ -1083,8 +1099,7 @@ namespace MugiSideBrowser
                 // SDKが古い場合などはフォールバック
             }
 
-            _bookmarks.Add(newItem);
-            BookmarkManager.Save(_bookmarks.ToList());
+            _ = _bookmarkService.AddBookmarkAsync(newItem);
         }
 
         private void CopyUrl_Click(object sender, RoutedEventArgs e)
@@ -1176,14 +1191,7 @@ namespace MugiSideBrowser
 
                 if (droppedData != null && targetData != null && droppedData != targetData)
                 {
-                    int oldIndex = _bookmarks.IndexOf(droppedData);
-                    int newIndex = _bookmarks.IndexOf(targetData);
-
-                    if (oldIndex != -1 && newIndex != -1)
-                    {
-                        _bookmarks.Move(oldIndex, newIndex);
-                        BookmarkManager.Save(_bookmarks.ToList());
-                    }
+                    _ = _bookmarkService.MoveBookmarkAsync(droppedData, targetData);
                 }
             }
             e.Handled = true;
@@ -1193,8 +1201,7 @@ namespace MugiSideBrowser
         {
             if (sender is System.Windows.Controls.MenuItem menuItem && menuItem.DataContext is BookmarkItem item)
             {
-                _bookmarks.Remove(item);
-                BookmarkManager.Save(_bookmarks.ToList());
+                _ = _bookmarkService.RemoveBookmarkAsync(item);
             }
         }
 
@@ -1225,6 +1232,71 @@ namespace MugiSideBrowser
             }
 
             _activeWebView.Source = new Uri(url);
+        }
+
+        // --- システムトレイ機能 ---
+        private void InitializeNotifyIcon()
+        {
+            try
+            {
+                var contextMenu = new System.Windows.Forms.ContextMenuStrip();
+                
+                var openItem = new System.Windows.Forms.ToolStripMenuItem("表示 / 復帰");
+                openItem.Click += (s, e) => ShowFromTray();
+                contextMenu.Items.Add(openItem);
+
+                contextMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
+
+                var exitItem = new System.Windows.Forms.ToolStripMenuItem("終了");
+                exitItem.Click += (s, e) => {
+                    _isExitingFromTray = true;
+                    this.Close();
+                };
+                contextMenu.Items.Add(exitItem);
+
+                string exePath = System.Reflection.Assembly.GetEntryAssembly()?.Location ?? "";
+                System.Drawing.Icon? appIcon = null;
+                if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
+                {
+                    try { appIcon = System.Drawing.Icon.ExtractAssociatedIcon(exePath); } catch { }
+                }
+
+                _notifyIcon = new System.Windows.Forms.NotifyIcon
+                {
+                    Text = "MugiSideBrowser",
+                    Icon = appIcon ?? System.Drawing.SystemIcons.Application,
+                    ContextMenuStrip = contextMenu,
+                    Visible = true
+                };
+
+                _notifyIcon.DoubleClick += (s, e) => {
+                    if (this.Visibility == Visibility.Visible && !_isFakeMinimized)
+                    {
+                        HideToTray();
+                    }
+                    else
+                    {
+                        ShowFromTray();
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"NotifyIcon Init Error: {ex.Message}");
+            }
+        }
+
+        private void HideToTray()
+        {
+            FakeMinimize();
+            this.Hide();
+        }
+
+        private void ShowFromTray()
+        {
+            this.Show();
+            this.Activate();
+            RestoreFromFakeMinimize();
         }
     }
 }

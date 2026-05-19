@@ -7,12 +7,12 @@
         mc:Ignorable="d"
         Title="MugiSideBrowser" Height="800" Width="400"
         WindowStyle="None" ResizeMode="NoResize"
-        Background="#1E1E1E" FontFamily="Segoe UI Variable Text">
+        Background="{DynamicResource AppBackground}" FontFamily="Segoe UI Variable Text">
     <Window.Resources>
         <Style x:Key="ToolbarButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#CCCCCC"/>
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryText}"/>
             <Setter Property="Padding" Value="8,4"/>
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
             <Setter Property="FontSize" Value="14"/>
@@ -28,8 +28,8 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#3D3D3D"/>
-                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -71,7 +71,7 @@
             </Grid.RowDefinitions>
 
             <!-- Custom Title Bar / Toolbar -->
-            <Border Grid.Row="0" Background="#2D2D2D" Padding="8,4" 
+            <Border Grid.Row="0" Background="{DynamicResource TitleBarBackground}" Padding="8,4" 
                     MouseLeftButtonDown="TitleBar_MouseDown" 
                     MouseMove="TitleBar_MouseMove" 
                     MouseLeftButtonUp="TitleBar_MouseUp">
@@ -109,7 +109,7 @@
                     <!-- Right: Window Controls -->
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
                         <Button Content="" Click="Minimize_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="最小化"/>
-                        <Button Content="" Click="Close_Click" Style="{StaticResource ToolbarButtonStyle}" Foreground="#FF6B6B" ToolTip="閉じる"/>
+                        <Button Content="" Click="Close_Click" Style="{StaticResource ToolbarButtonStyle}" Foreground="{DynamicResource DangerForeground}" ToolTip="閉じる"/>
                     </StackPanel>
 
                     <!-- Center: Spacer -->
@@ -118,7 +118,7 @@
             </Border>
 
             <!-- Address Bar & Tools -->
-            <Border Grid.Row="1" Background="#252525" Padding="8,4" BorderBrush="#333" BorderThickness="0,1">
+            <Border Grid.Row="1" Background="{DynamicResource AddressBarBackground}" Padding="8,4" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,1">
                 <DockPanel LastChildFill="True">
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="0,0,4,0">
                         <Button Content="" Click="Back_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="戻る"/>
@@ -159,9 +159,9 @@
                         </Button.ContextMenu>
                     </Button>
                     
-                    <TextBox x:Name="UrlTextBox" Background="#333" Foreground="White" BorderThickness="1" BorderBrush="#444"
+                    <TextBox x:Name="UrlTextBox" Background="{DynamicResource BorderColor}" Foreground="{DynamicResource PrimaryText}" BorderThickness="1" BorderBrush="{DynamicResource TextBoxBorderColor}"
                              Padding="8,4" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown"
-                             FontSize="13" SelectionBrush="#0078D4">
+                             FontSize="13" SelectionBrush="{DynamicResource SelectionBackground}">
                         <TextBox.Resources>
                             <Style TargetType="{x:Type Border}">
                                 <Setter Property="CornerRadius" Value="4"/>
@@ -172,7 +172,7 @@
             </Border>
 
             <!-- Bookmark Bar (Horizontal Scroll) -->
-            <Border Grid.Row="2" Background="#1E1E1E" BorderBrush="#333" BorderThickness="0,0,0,1">
+            <Border Grid.Row="2" Background="{DynamicResource AppBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1">
                 <ScrollViewer x:Name="BookmarkScrollViewer" 
                               HorizontalScrollBarVisibility="Hidden" 
                               VerticalScrollBarVisibility="Disabled" 
@@ -196,7 +196,7 @@
                                             <Setter Property="Background" Value="Transparent"/>
                                             <Style.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="Background" Value="#3D3D3D"/>
+                                                    <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
                                                 </Trigger>
                                             </Style.Triggers>
                                         </Style>
@@ -224,7 +224,7 @@
 
                 <wv2:WebView2 x:Name="webView" Grid.Row="0" Margin="0" GotFocus="WebView_GotFocus"/>
 
-                <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="#333" 
+                <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="{DynamicResource BorderColor}" 
                               Visibility="Collapsed" x:Name="VerticalSplitter" ShowsPreview="True"/>
 
                 <wv2:WebView2 x:Name="webViewBottom" Grid.Row="2" Margin="0" Visibility="Collapsed" GotFocus="WebView_GotFocus"/>
@@ -236,7 +236,7 @@
                 MouseLeftButtonDown="ResizeGrip_MouseDown" MouseMove="ResizeGrip_MouseMove" MouseLeftButtonUp="ResizeGrip_MouseUp"/>
 
         <!-- リサイズ中のガイド線 -->
-        <Rectangle x:Name="ResizePreview" Grid.Column="1" HorizontalAlignment="Left" Width="2" Fill="#0078D4" 
+        <Rectangle x:Name="ResizePreview" Grid.Column="1" HorizontalAlignment="Left" Width="2" Fill="{DynamicResource SelectionBackground}" 
                    Visibility="Collapsed" IsHitTestVisible="False" Opacity="0.8"/>
     </Grid>
 
