@@ -199,83 +199,116 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Cursor="Hand" Padding="8" CornerRadius="6" Margin="4,2"
-                                                ToolTip="{Binding Title}"
-                                                PreviewMouseLeftButtonDown="Bookmark_PreviewMouseLeftButtonDown" 
-                                                MouseMove="Bookmark_MouseMove"
-                                                MouseLeftButtonUp="Bookmark_MouseLeftButtonUp"
-                                                AllowDrop="True" Drop="Bookmark_Drop" DragOver="Bookmark_DragOver">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="Transparent"/>
-                                                    <Style.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
-                                                        </Trigger>
-                                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                            <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <Border.ContextMenu>
-                                                <ContextMenu>
-                                                    <MenuItem Header="下のウィンドウで開く" Click="OpenInBottomWindow_Click"/>
-                                                    <Separator/>
-                                                    <MenuItem Header="このページの状態をクリア (メモリ解放)" Click="ClearBookmarkState_Click"/>
-                                                    <Separator/>
-                                                    <MenuItem Header="削除" Click="DeleteBookmark_Click"/>
-                                                </ContextMenu>
-                                            </Border.ContextMenu>
-                                            <!-- Favicon Image with Scale Transform on Hover for WOW effect -->
-                                            <Grid Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <Image Source="{Binding DisplayFaviconUrl}" Width="20" Height="20" IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality">
-                                                    <Image.Style>
-                                                        <Style TargetType="Image">
-                                                            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
-                                                            <Setter Property="RenderTransform">
-                                                                <Setter.Value>
-                                                                    <ScaleTransform ScaleX="1.0" ScaleY="1.0"/>
-                                                                </Setter.Value>
-                                                            </Setter>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=IsMouseOver}" Value="True">
-                                                                    <DataTrigger.EnterActions>
-                                                                        <BeginStoryboard>
-                                                                            <Storyboard>
-                                                                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleX)" To="1.15" Duration="0:0:0.15"/>
-                                                                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleY)" To="1.15" Duration="0:0:0.15"/>
-                                                                            </Storyboard>
-                                                                        </BeginStoryboard>
-                                                                    </DataTrigger.EnterActions>
-                                                                    <DataTrigger.ExitActions>
-                                                                        <BeginStoryboard>
-                                                                            <Storyboard>
-                                                                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleX)" To="1.0" Duration="0:0:0.15"/>
-                                                                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleY)" To="1.0" Duration="0:0:0.15"/>
-                                                                            </Storyboard>
-                                                                        </BeginStoryboard>
-                                                                    </DataTrigger.ExitActions>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Image.Style>
-                                                </Image>
-                                                <!-- Indicator for memory load status -->
-                                                <Ellipse Width="6" Height="6" Fill="#FF4CAF50" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-2,-2" IsHitTestVisible="False">
-                                                    <Ellipse.Style>
-                                                        <Style TargetType="Ellipse">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsLoaded}" Value="True">
-                                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Ellipse.Style>
-                                                </Ellipse>
-                                            </Grid>
-                                        </Border>
+                                        <Grid>
+                                            <Border x:Name="NormalItemBorder" Cursor="Hand" Padding="8" CornerRadius="6" Margin="4,2"
+                                                    ToolTip="{Binding Title}"
+                                                    PreviewMouseLeftButtonDown="Bookmark_PreviewMouseLeftButtonDown" 
+                                                    MouseMove="Bookmark_MouseMove"
+                                                    MouseLeftButtonUp="Bookmark_MouseLeftButtonUp"
+                                                    AllowDrop="True" Drop="Bookmark_Drop" DragOver="Bookmark_DragOver">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="Transparent"/>
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
+                                                            </Trigger>
+                                                            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Border.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="中のウィンドウで開く" Click="OpenInMiddleWindow_Click"/>
+                                                        <MenuItem Header="下のウィンドウで開く" Click="OpenInBottomWindow_Click"/>
+                                                        <Separator/>
+                                                        <MenuItem Header="このページの状態をクリア (メモリ解放)" Click="ClearBookmarkState_Click"/>
+                                                        <Separator/>
+                                                        <MenuItem Header="削除" Click="DeleteBookmark_Click"/>
+                                                    </ContextMenu>
+                                                </Border.ContextMenu>
+                                                <!-- Favicon Image with Scale Transform on Hover for WOW effect -->
+                                                <Grid Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <Image Source="{Binding DisplayFaviconUrl}" Width="20" Height="20" IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality">
+                                                        <Image.Style>
+                                                            <Style TargetType="Image">
+                                                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                                                                <Setter Property="RenderTransform">
+                                                                    <Setter.Value>
+                                                                        <ScaleTransform ScaleX="1.0" ScaleY="1.0"/>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=IsMouseOver}" Value="True">
+                                                                        <DataTrigger.EnterActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleX)" To="1.15" Duration="0:0:0.15"/>
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleY)" To="1.15" Duration="0:0:0.15"/>
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </DataTrigger.EnterActions>
+                                                                        <DataTrigger.ExitActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleX)" To="1.0" Duration="0:0:0.15"/>
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleY)" To="1.0" Duration="0:0:0.15"/>
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </DataTrigger.ExitActions>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Image.Style>
+                                                    </Image>
+                                                    <!-- Indicator for memory load status -->
+                                                    <Ellipse Width="6" Height="6" Fill="#FF4CAF50" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-2,-2" IsHitTestVisible="False">
+                                                        <Ellipse.Style>
+                                                            <Style TargetType="Ellipse">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsLoaded}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Ellipse.Style>
+                                                    </Ellipse>
+                                                </Grid>
+                                            </Border>
+
+                                            <!-- Separator Element -->
+                                            <Border x:Name="SeparatorBorder" Cursor="Hand" Padding="4,4" Margin="4,1" CornerRadius="4" Background="Transparent"
+                                                    PreviewMouseLeftButtonDown="Bookmark_PreviewMouseLeftButtonDown" 
+                                                    MouseMove="Bookmark_MouseMove"
+                                                    MouseLeftButtonUp="Bookmark_MouseLeftButtonUp"
+                                                    AllowDrop="True" Drop="Bookmark_Drop" DragOver="Bookmark_DragOver"
+                                                    Visibility="Collapsed">
+                                                <Border.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="削除" Click="DeleteBookmark_Click"/>
+                                                    </ContextMenu>
+                                                </Border.ContextMenu>
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Rectangle Height="1" HorizontalAlignment="Stretch" Fill="{DynamicResource SecondaryText}" Opacity="0.4" SnapsToDevicePixels="True"/>
+                                            </Border>
+                                        </Grid>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsSeparator}" Value="True">
+                                                <Setter TargetName="NormalItemBorder" Property="Visibility" Value="Collapsed"/>
+                                                <Setter TargetName="SeparatorBorder" Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -286,6 +319,12 @@
                                 Click="Tools_Click" ToolTip="ツールメニュー" Margin="4,6">
                             <Button.ContextMenu>
                                 <ContextMenu x:Name="ToolsMenu">
+                                    <MenuItem Header="区切り線を追加" Click="AddSeparator_Click">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <Separator/>
                                     <MenuItem x:Name="SplitMenuItem" Header="上下分割を切り替え" Click="SplitView_Click">
                                         <MenuItem.Icon>
                                             <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
@@ -315,16 +354,23 @@
                 <Grid Grid.Column="1">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*" x:Name="TopRow"/>
-                        <RowDefinition Height="Auto" x:Name="SplitterRow"/>
+                        <RowDefinition Height="Auto" x:Name="SplitterRow1"/>
+                        <RowDefinition Height="0" x:Name="MiddleRow"/>
+                        <RowDefinition Height="Auto" x:Name="SplitterRow2"/>
                         <RowDefinition Height="0" x:Name="BottomRow"/>
                     </Grid.RowDefinitions>
 
                     <Grid x:Name="WebViewContainer" Grid.Row="0" Margin="0"/>
 
                     <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="{DynamicResource BorderColor}" 
-                                  Visibility="Collapsed" x:Name="VerticalSplitter" ShowsPreview="True"/>
+                                  Visibility="Collapsed" x:Name="VerticalSplitter1" ShowsPreview="True"/>
 
-                    <Grid x:Name="WebViewBottomContainer" Grid.Row="2" Margin="0" Visibility="Collapsed"/>
+                    <Grid x:Name="WebViewMiddleContainer" Grid.Row="2" Margin="0" Visibility="Collapsed"/>
+
+                    <GridSplitter Grid.Row="3" Height="4" HorizontalAlignment="Stretch" Background="{DynamicResource BorderColor}" 
+                                  Visibility="Collapsed" x:Name="VerticalSplitter2" ShowsPreview="True"/>
+
+                    <Grid x:Name="WebViewBottomContainer" Grid.Row="4" Margin="0" Visibility="Collapsed"/>
                 </Grid>
             </Grid>
         </Grid>

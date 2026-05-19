@@ -28,7 +28,7 @@ namespace MugiSideBrowser.Services
 
         public async Task AddBookmarkAsync(BookmarkItem item)
         {
-            if (!_bookmarks.Any(b => b.Url == item.Url))
+            if (item.IsSeparator || !_bookmarks.Any(b => b.Url == item.Url))
             {
                 _bookmarks.Add(item);
                 await SaveAsync();
