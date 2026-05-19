@@ -268,8 +268,8 @@ namespace MugiSideBrowser
         {
             if (sender is ScrollViewer scrollViewer)
             {
-                if (e.Delta > 0) scrollViewer.LineLeft();
-                else scrollViewer.LineRight();
+                if (e.Delta > 0) scrollViewer.LineUp();
+                else scrollViewer.LineDown();
                 e.Handled = true;
             }
         }
