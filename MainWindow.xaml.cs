@@ -20,18 +20,17 @@ namespace MugiSideBrowser
         private AppBarHelper _appBarHelper;
         private BookmarkService _bookmarkService;
         private System.Windows.Forms.NotifyIcon? _notifyIcon;
-        private bool _isExitingFromTray = false;
         private System.Windows.Point _dragStartPoint;
         private const string BookmarkDataFormat = "MugiSideBrowser.BookmarkItem";
-        private Microsoft.Web.WebView2.Wpf.WebView2 _activeWebView;
+        private static readonly uint ShowWindowMessage = NativeMethods.RegisterWindowMessage("MugiSideBrowser_ShowWindowMessage");
+        private Microsoft.Web.WebView2.Wpf.WebView2 _activeWebView = null!;
+        private Microsoft.Web.WebView2.Wpf.WebView2? _defaultWebView;
+        private readonly Dictionary<BookmarkItem, Microsoft.Web.WebView2.Wpf.WebView2> _bookmarkWebViews = new();
         private bool _isBottomInitialized = false;
         private bool _isMobileMode = false;
         private string? _defaultUserAgent = null;
         private bool _useExternalBrowserOnCtrlClick = true;
         private const string MobileUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1";
-        private bool _isFakeMinimized = false;
-        private double _savedNormalLeft;
-        private double _savedNormalTop;
         private double _resizeStartHeight;
         private System.Threading.Mutex? _appBarLockMutex;
         private enum DisplayMode
@@ -51,7 +50,7 @@ namespace MugiSideBrowser
         private System.Windows.Point _dragStartWindowPos;
         private DisplayMode _dragOriginalMode;
 
-        private const double FullWidthDefault = 400;
+        private const double FullWidthDefault = 460;
         private double _currentFullWidth = FullWidthDefault;
         private const double TriggerWidth = 2;
 
@@ -68,12 +67,16 @@ namespace MugiSideBrowser
         {
             InitializeComponent();
             _appBarHelper = new AppBarHelper(this);
-            _activeWebView = webView;
+            this.Width = _currentFullWidth; // 設定したデフォルトの幅を適用
+            
+            // デフォルトのメイン WebView2 を動的に作成
+            _defaultWebView = CreateNewWebView();
+            WebViewContainer.Children.Add(_defaultWebView);
+            _activeWebView = _defaultWebView;
             
             this.SourceInitialized += MainWindow_SourceInitialized;
             this.Closing += MainWindow_Closing;
             this.StateChanged += MainWindow_StateChanged;
-            this.Activated += MainWindow_Activated;
             
             InitializeWebView();
 
@@ -81,6 +84,18 @@ namespace MugiSideBrowser
             BookmarkList.ItemsSource = _bookmarkService.Bookmarks;
             InitializeBookmarksAsync();
             InitializeNotifyIcon();
+            UpdateMinimizeButtonState();
+        }
+
+        private Microsoft.Web.WebView2.Wpf.WebView2 CreateNewWebView()
+        {
+            var wv = new Microsoft.Web.WebView2.Wpf.WebView2
+            {
+                Margin = new Thickness(0),
+                Visibility = Visibility.Visible
+            };
+            wv.GotFocus += WebView_GotFocus;
+            return wv;
         }
 
         private async void InitializeBookmarksAsync()
@@ -147,6 +162,7 @@ namespace MugiSideBrowser
 
                 _appBarHelper.Register();
                 UpdateWindowTitle();
+                UpdateMinimizeButtonState();
             }
             else
             {
@@ -173,89 +189,21 @@ namespace MugiSideBrowser
             BottomResizeRow.Height = new GridLength(4);
             
             UpdateWindowTitle();
+            UpdateMinimizeButtonState();
         }
 
 
 
         private void MainWindow_StateChanged(object? sender, EventArgs e)
         {
-            // 本当の最小化が呼ばれたら、擬似最小化に切り替える
+            // 本当の最小化が呼ばれたら、モードに応じて切り替える
             if (this.WindowState == WindowState.Minimized)
             {
-                FakeMinimize();
-            }
-        }
-
-        private void MainWindow_Activated(object? sender, EventArgs e)
-        {
-            // 擬似最小化中にタスクバーからクリックされたら復帰
-            if (_isFakeMinimized)
-            {
-                RestoreFromFakeMinimize();
-            }
-        }
-
-        private void FakeMinimize()
-        {
-            if (_isFakeMinimized) return;
-            
-            _isFakeMinimized = true;
-
-            // 通常モードの場合は現在の位置を記憶しておく
-            if (_currentMode == DisplayMode.Normal)
-            {
-                _savedNormalLeft = this.Left;
-                _savedNormalTop = this.Top;
-            }
-
-            // アニメーションを停止（これをしないとLeftの上書きが効かない）
-            this.BeginAnimation(Window.LeftProperty, null);
-            this.BeginAnimation(Window.WidthProperty, null);
-
-            // 自動隠しタイマーを停止
-            _mouseTimer?.Stop();
-            
-            _appBarHelper.Unregister();
-
-            // 状態をNormalに戻してから画面外へ飛ばす
-            this.WindowState = WindowState.Normal;
-            this.Left = -30000;
-            this.Top = -30000;
-
-            // 重要：自分自身のアクティブ状態を解除する。
-            IntPtr taskbarHwnd = NativeMethods.FindWindow("Shell_TrayWnd", null);
-            if (taskbarHwnd != IntPtr.Zero)
-            {
-                NativeMethods.SetForegroundWindow(taskbarHwnd);
-            }
-        }
-
-
-
-        private void RestoreFromFakeMinimize()
-        {
-            if (!_isFakeMinimized) return;
-
-            _isFakeMinimized = false;
-            
-            if (_currentMode == DisplayMode.Normal)
-            {
-                // 通常モードなら記憶していた位置に戻す
-                this.Left = _savedNormalLeft;
-                this.Top = _savedNormalTop;
-                this.Topmost = false;
-            }
-            else if (_currentMode == DisplayMode.AppBar)
-            {
-                // AppBarモードなら予約して右端へ
-                _appBarHelper.Register();
-            }
-            else if (_currentMode == DisplayMode.AutoHide)
-            {
-                // 自動隠しモードなら予約せず「隠れた状態」として復帰
-                _isSlidOut = true; // SlideOut()を確実に動かすため
-                SlideOut(); 
-                StartAutoHideTimer();
+                if (_currentMode == DisplayMode.AppBar || _currentMode == DisplayMode.AutoHide)
+                {
+                    // AppBar または AutoHide (Hot Corner) モードの時は最小化を無効にする
+                    this.WindowState = WindowState.Normal;
+                }
             }
         }
 
@@ -387,6 +335,8 @@ namespace MugiSideBrowser
                 StartAutoHideTimer();
                 UpdateWindowTitle();
             }
+
+            UpdateMinimizeButtonState();
         }
 
 
@@ -553,6 +503,7 @@ namespace MugiSideBrowser
             }
             
             UpdateWindowTitle();
+            UpdateMinimizeButtonState();
         }
 
         private void StartAutoHideTimer()
@@ -580,7 +531,7 @@ namespace MugiSideBrowser
 
         private void MouseTimer_Tick(object? sender, EventArgs e)
         {
-            if (_currentMode != DisplayMode.AutoHide || _isFakeMinimized || _isDragging) return;
+            if (_currentMode != DisplayMode.AutoHide || _isDragging) return;
 
             // マウスの物理座標を取得
             var point = new System.Drawing.Point();
@@ -866,18 +817,27 @@ namespace MugiSideBrowser
         {
             try
             {
-                if (webView == null || webView.CoreWebView2 == null) return;
+                if (_defaultWebView == null || _defaultWebView.CoreWebView2 == null) return;
 
                 // 初回時にデフォルトのUserAgentを保存
                 if (_defaultUserAgent == null)
                 {
-                    _defaultUserAgent = webView.CoreWebView2.Settings.UserAgent;
+                    _defaultUserAgent = _defaultWebView.CoreWebView2.Settings.UserAgent;
                 }
 
                 string targetUA = _isMobileMode ? MobileUserAgent : _defaultUserAgent;
 
-                // メインのWebViewに適用
-                webView.CoreWebView2.Settings.UserAgent = targetUA;
+                // デフォルトのWebViewに適用
+                _defaultWebView.CoreWebView2.Settings.UserAgent = targetUA;
+
+                // ブックマーク用にキャッシュされているすべてのWebViewに適用
+                foreach (var kvp in _bookmarkWebViews)
+                {
+                    if (kvp.Value.CoreWebView2 != null)
+                    {
+                        kvp.Value.CoreWebView2.Settings.UserAgent = targetUA;
+                    }
+                }
                 
                 // 下部のWebView（初期化済みなら）にも適用
                 if (_isBottomInitialized && webViewBottom != null && webViewBottom.CoreWebView2 != null)
@@ -912,37 +872,46 @@ namespace MugiSideBrowser
         {
             // 起動時の自動配置（ハンドルが生成された後に行う）
             AutoAllocatePosition();
+
+            // ウィンドウメッセージのフックを登録（多重起動時のウィンドウ復元用）
+            var helper = new WindowInteropHelper(this);
+            var source = HwndSource.FromHwnd(helper.Handle);
+            source?.AddHook(WndProc);
+        }
+
+        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == ShowWindowMessage)
+            {
+                // トレイまたは擬似最小化からウィンドウを最前面に復帰させる
+                ShowFromTray();
+                handled = true;
+            }
+            return IntPtr.Zero;
         }
 
 
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (!_isExitingFromTray)
+            if (_notifyIcon != null)
             {
-                e.Cancel = true;
-                HideToTray();
+                _notifyIcon.Visible = false;
+                _notifyIcon.Dispose();
             }
-            else
-            {
-                if (_notifyIcon != null)
-                {
-                    _notifyIcon.Visible = false;
-                    _notifyIcon.Dispose();
-                }
-                _appBarHelper.Unregister();
-                ReleaseAppBarLock();
-            }
+            _appBarHelper.Unregister();
+            ReleaseAppBarLock();
         }
 
         private async void InitializeWebView()
         {
+            if (_defaultWebView == null) return;
             try
             {
-                await webView.EnsureCoreWebView2Async();
+                await _defaultWebView.EnsureCoreWebView2Async();
                 UpdateUserAgent();
-                webView.CoreWebView2.SourceChanged += CoreWebView2_SourceChanged;
-                webView.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
-                webView.Source = new Uri("https://www.google.com");
+                _defaultWebView.CoreWebView2.SourceChanged += CoreWebView2_SourceChanged;
+                _defaultWebView.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
+                _defaultWebView.Source = new Uri("https://www.google.com");
             }
             catch (Exception ex)
             {
@@ -1037,7 +1006,11 @@ namespace MugiSideBrowser
                 BottomRow.Height = new GridLength(0);
                 VerticalSplitter.Visibility = Visibility.Collapsed;
                 webViewBottom.Visibility = Visibility.Collapsed;
-                _activeWebView = webView;
+                
+                // WebViewContainer の中の可視状態の WebView を探す
+                var visibleWebView = WebViewContainer.Children.OfType<Microsoft.Web.WebView2.Wpf.WebView2>()
+                                      .FirstOrDefault(w => w.Visibility == Visibility.Visible);
+                _activeWebView = visibleWebView ?? _defaultWebView ?? throw new InvalidOperationException("No web view available");
                 UrlTextBox.Text = _activeWebView.Source?.ToString() ?? "";
             }
         }
@@ -1064,7 +1037,19 @@ namespace MugiSideBrowser
 
         private void Minimize_Click(object sender, RoutedEventArgs e)
         {
-            FakeMinimize();
+            if (_currentMode == DisplayMode.AppBar || _currentMode == DisplayMode.AutoHide)
+            {
+                return;
+            }
+            this.WindowState = WindowState.Minimized;
+        }
+
+        private void UpdateMinimizeButtonState()
+        {
+            if (MinimizeButton != null)
+            {
+                MinimizeButton.IsEnabled = (_currentMode == DisplayMode.Normal);
+            }
         }
 
         private void Star_Click(object sender, RoutedEventArgs e)
@@ -1136,11 +1121,75 @@ namespace MugiSideBrowser
             }
         }
 
-        private void Bookmark_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private async void Bookmark_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (sender is FrameworkElement element && element.DataContext is BookmarkItem item)
             {
-                webView.Source = new Uri(item.Url);
+                // すべてのブックマークの IsActive を解除
+                foreach (var b in _bookmarkService.Bookmarks)
+                {
+                    b.IsActive = false;
+                }
+                
+                // 対象のブックマークをアクティブに設定
+                item.IsActive = true;
+
+                Microsoft.Web.WebView2.Wpf.WebView2 targetWebView;
+
+                // すでにキャッシュ（メモリ上）に存在するかチェック
+                if (_bookmarkWebViews.TryGetValue(item, out var cachedWebView))
+                {
+                    targetWebView = cachedWebView;
+                }
+                else
+                {
+                    // 存在しないので、新規に WebView2 インスタンスを作成
+                    targetWebView = CreateNewWebView();
+                    WebViewContainer.Children.Add(targetWebView);
+                    _bookmarkWebViews[item] = targetWebView;
+                    item.IsLoaded = true;
+
+                    // WebView2 の初期化
+                    await targetWebView.EnsureCoreWebView2Async();
+                    
+                    // 現在のUserAgent設定を適用
+                    if (_defaultUserAgent != null)
+                    {
+                        targetWebView.CoreWebView2.Settings.UserAgent = _isMobileMode ? MobileUserAgent : _defaultUserAgent;
+                    }
+                    
+                    // イベント購読
+                    targetWebView.CoreWebView2.SourceChanged += CoreWebView2_SourceChanged;
+                    targetWebView.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
+                    
+                    // ロード開始
+                    targetWebView.Source = new Uri(item.Url);
+                }
+
+                // 画面上の切り替え：対象以外の WebView を Collapsed にし、対象を Visible にする
+                if (_defaultWebView != null)
+                {
+                    _defaultWebView.Visibility = Visibility.Collapsed;
+                }
+
+                foreach (var kvp in _bookmarkWebViews)
+                {
+                    if (kvp.Key == item)
+                    {
+                        kvp.Value.Visibility = Visibility.Visible;
+                    }
+                    else
+                    {
+                        kvp.Value.Visibility = Visibility.Collapsed;
+                    }
+                }
+
+                // アクティブ WebView の更新とアドレスバーの反映
+                _activeWebView = targetWebView;
+                if (_activeWebView.Source != null)
+                {
+                    UrlTextBox.Text = _activeWebView.Source.ToString();
+                }
             }
         }
 
@@ -1201,7 +1250,57 @@ namespace MugiSideBrowser
         {
             if (sender is System.Windows.Controls.MenuItem menuItem && menuItem.DataContext is BookmarkItem item)
             {
+                DisposeBookmarkWebView(item);
                 _ = _bookmarkService.RemoveBookmarkAsync(item);
+            }
+        }
+
+        private void ClearBookmarkState_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.MenuItem menuItem && menuItem.DataContext is BookmarkItem item)
+            {
+                DisposeBookmarkWebView(item);
+            }
+        }
+
+        private void DisposeBookmarkWebView(BookmarkItem item)
+        {
+            if (_bookmarkWebViews.TryGetValue(item, out var wv))
+            {
+                // もし破棄するブックマークがアクティブだったらデフォルトのWebViewに戻す
+                if (_activeWebView == wv)
+                {
+                    ResetToDefaultWebView();
+                }
+
+                // コンテナから削除して破棄
+                WebViewContainer.Children.Remove(wv);
+                try { wv.Dispose(); } catch { }
+                _bookmarkWebViews.Remove(item);
+                item.IsLoaded = false;
+                item.IsActive = false;
+            }
+        }
+
+        private void ResetToDefaultWebView()
+        {
+            if (_defaultWebView != null)
+            {
+                _defaultWebView.Visibility = Visibility.Visible;
+                _activeWebView = _defaultWebView;
+                if (_activeWebView.Source != null)
+                {
+                    UrlTextBox.Text = _activeWebView.Source.ToString();
+                }
+            }
+            
+            // すべてのブックマークの IsActive を解除
+            if (_bookmarkService != null && _bookmarkService.Bookmarks != null)
+            {
+                foreach (var b in _bookmarkService.Bookmarks)
+                {
+                    b.IsActive = false;
+                }
             }
         }
 
@@ -1249,7 +1348,6 @@ namespace MugiSideBrowser
 
                 var exitItem = new System.Windows.Forms.ToolStripMenuItem("終了");
                 exitItem.Click += (s, e) => {
-                    _isExitingFromTray = true;
                     this.Close();
                 };
                 contextMenu.Items.Add(exitItem);
@@ -1270,14 +1368,7 @@ namespace MugiSideBrowser
                 };
 
                 _notifyIcon.DoubleClick += (s, e) => {
-                    if (this.Visibility == Visibility.Visible && !_isFakeMinimized)
-                    {
-                        HideToTray();
-                    }
-                    else
-                    {
-                        ShowFromTray();
-                    }
+                    ShowFromTray();
                 };
             }
             catch (Exception ex)
@@ -1286,17 +1377,11 @@ namespace MugiSideBrowser
             }
         }
 
-        private void HideToTray()
-        {
-            FakeMinimize();
-            this.Hide();
-        }
-
         private void ShowFromTray()
         {
+            this.WindowState = WindowState.Normal;
             this.Show();
             this.Activate();
-            RestoreFromFakeMinimize();
         }
     }
 }

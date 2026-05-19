@@ -103,5 +103,10 @@ namespace MugiSideBrowser
 
         [DllImport("user32.dll")]
         public static extern short GetAsyncKeyState(int vKey);
+
+        [DllImport("user32.dll")]
+        public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        public static readonly IntPtr HWND_BROADCAST = (IntPtr)0xffff;
     }
 }

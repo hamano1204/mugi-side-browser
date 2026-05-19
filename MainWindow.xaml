@@ -102,7 +102,7 @@
                     
                     <!-- Right: Window Controls -->
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                        <Button Content="" Click="Minimize_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="最小化"/>
+                        <Button x:Name="MinimizeButton" Content="" Click="Minimize_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="最小化"/>
                         <Button Content="" Click="Close_Click" Style="{StaticResource ToolbarButtonStyle}" Foreground="{DynamicResource DangerForeground}" ToolTip="閉じる"/>
                     </StackPanel>
 
@@ -212,11 +212,16 @@
                                                         <Trigger Property="IsMouseOver" Value="True">
                                                             <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
                                                         </Trigger>
+                                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
+                                                        </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
                                             <Border.ContextMenu>
                                                 <ContextMenu>
+                                                    <MenuItem Header="このページの状態をクリア (メモリ解放)" Click="ClearBookmarkState_Click"/>
+                                                    <Separator/>
                                                     <MenuItem Header="削除" Click="DeleteBookmark_Click"/>
                                                 </ContextMenu>
                                             </Border.ContextMenu>
@@ -254,6 +259,19 @@
                                                         </Style>
                                                     </Image.Style>
                                                 </Image>
+                                                <!-- Indicator for memory load status -->
+                                                <Ellipse Width="6" Height="6" Fill="#FF4CAF50" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-2,-2" IsHitTestVisible="False">
+                                                    <Ellipse.Style>
+                                                        <Style TargetType="Ellipse">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsLoaded}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -299,7 +317,7 @@
                         <RowDefinition Height="0" x:Name="BottomRow"/>
                     </Grid.RowDefinitions>
 
-                    <wv2:WebView2 x:Name="webView" Grid.Row="0" Margin="0" GotFocus="WebView_GotFocus"/>
+                    <Grid x:Name="WebViewContainer" Grid.Row="0" Margin="0"/>
 
                     <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="{DynamicResource BorderColor}" 
                                   Visibility="Collapsed" x:Name="VerticalSplitter" ShowsPreview="True"/>
