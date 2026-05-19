@@ -220,6 +220,8 @@
                                             </Border.Style>
                                             <Border.ContextMenu>
                                                 <ContextMenu>
+                                                    <MenuItem Header="下のウィンドウで開く" Click="OpenInBottomWindow_Click"/>
+                                                    <Separator/>
                                                     <MenuItem Header="このページの状態をクリア (メモリ解放)" Click="ClearBookmarkState_Click"/>
                                                     <Separator/>
                                                     <MenuItem Header="削除" Click="DeleteBookmark_Click"/>
@@ -322,7 +324,7 @@
                     <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="{DynamicResource BorderColor}" 
                                   Visibility="Collapsed" x:Name="VerticalSplitter" ShowsPreview="True"/>
 
-                    <wv2:WebView2 x:Name="webViewBottom" Grid.Row="2" Margin="0" Visibility="Collapsed" GotFocus="WebView_GotFocus"/>
+                    <Grid x:Name="WebViewBottomContainer" Grid.Row="2" Margin="0" Visibility="Collapsed"/>
                 </Grid>
             </Grid>
         </Grid>

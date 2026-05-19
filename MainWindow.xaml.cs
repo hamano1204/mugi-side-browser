@@ -25,6 +25,7 @@ namespace MugiSideBrowser
         private static readonly uint ShowWindowMessage = NativeMethods.RegisterWindowMessage("MugiSideBrowser_ShowWindowMessage");
         private Microsoft.Web.WebView2.Wpf.WebView2 _activeWebView = null!;
         private Microsoft.Web.WebView2.Wpf.WebView2? _defaultWebView;
+        private Microsoft.Web.WebView2.Wpf.WebView2? _defaultWebViewBottom;
         private readonly Dictionary<BookmarkItem, Microsoft.Web.WebView2.Wpf.WebView2> _bookmarkWebViews = new();
         private bool _isBottomInitialized = false;
         private bool _isMobileMode = false;
@@ -840,9 +841,9 @@ namespace MugiSideBrowser
                 }
                 
                 // 下部のWebView（初期化済みなら）にも適用
-                if (_isBottomInitialized && webViewBottom != null && webViewBottom.CoreWebView2 != null)
+                if (_isBottomInitialized && _defaultWebViewBottom != null && _defaultWebViewBottom.CoreWebView2 != null)
                 {
-                    webViewBottom.CoreWebView2.Settings.UserAgent = targetUA;
+                    _defaultWebViewBottom.CoreWebView2.Settings.UserAgent = targetUA;
                 }
 
                 // メニュー項目のテキストとアイコンを更新
@@ -955,17 +956,20 @@ namespace MugiSideBrowser
             if (_isBottomInitialized) return;
             try
             {
-                await webViewBottom.EnsureCoreWebView2Async();
-                webViewBottom.CoreWebView2.SourceChanged += CoreWebView2_SourceChanged;
-                webViewBottom.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
+                _defaultWebViewBottom = CreateNewWebView();
+                WebViewBottomContainer.Children.Add(_defaultWebViewBottom);
+
+                await _defaultWebViewBottom.EnsureCoreWebView2Async();
+                _defaultWebViewBottom.CoreWebView2.SourceChanged += CoreWebView2_SourceChanged;
+                _defaultWebViewBottom.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
                 
                 // 現在のUserAgent設定を適用
                 if (_defaultUserAgent != null)
                 {
-                    webViewBottom.CoreWebView2.Settings.UserAgent = _isMobileMode ? MobileUserAgent : _defaultUserAgent;
+                    _defaultWebViewBottom.CoreWebView2.Settings.UserAgent = _isMobileMode ? MobileUserAgent : _defaultUserAgent;
                 }
 
-                webViewBottom.Source = new Uri("https://www.google.com");
+                _defaultWebViewBottom.Source = new Uri("https://www.google.com");
                 _isBottomInitialized = true;
             }
             catch (Exception ex)
@@ -996,7 +1000,7 @@ namespace MugiSideBrowser
                 TopRow.Height = new GridLength(1, GridUnitType.Star);
                 BottomRow.Height = new GridLength(1, GridUnitType.Star);
                 VerticalSplitter.Visibility = Visibility.Visible;
-                webViewBottom.Visibility = Visibility.Visible;
+                WebViewBottomContainer.Visibility = Visibility.Visible;
                 InitializeBottomWebView();
             }
             else
@@ -1005,13 +1009,14 @@ namespace MugiSideBrowser
                 TopRow.Height = new GridLength(1, GridUnitType.Star);
                 BottomRow.Height = new GridLength(0);
                 VerticalSplitter.Visibility = Visibility.Collapsed;
-                webViewBottom.Visibility = Visibility.Collapsed;
+                WebViewBottomContainer.Visibility = Visibility.Collapsed;
                 
                 // WebViewContainer の中の可視状態の WebView を探す
                 var visibleWebView = WebViewContainer.Children.OfType<Microsoft.Web.WebView2.Wpf.WebView2>()
                                       .FirstOrDefault(w => w.Visibility == Visibility.Visible);
                 _activeWebView = visibleWebView ?? _defaultWebView ?? throw new InvalidOperationException("No web view available");
                 UrlTextBox.Text = _activeWebView.Source?.ToString() ?? "";
+                UpdateBookmarkActiveState();
             }
         }
 
@@ -1121,76 +1126,21 @@ namespace MugiSideBrowser
             }
         }
 
-        private async void Bookmark_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void Bookmark_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (sender is FrameworkElement element && element.DataContext is BookmarkItem item)
             {
-                // すべてのブックマークの IsActive を解除
-                foreach (var b in _bookmarkService.Bookmarks)
+                // Ctrl キーが押されている場合は下のウィンドウで開く
+                if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Control))
                 {
-                    b.IsActive = false;
-                }
-                
-                // 対象のブックマークをアクティブに設定
-                item.IsActive = true;
-
-                Microsoft.Web.WebView2.Wpf.WebView2 targetWebView;
-
-                // すでにキャッシュ（メモリ上）に存在するかチェック
-                if (_bookmarkWebViews.TryGetValue(item, out var cachedWebView))
-                {
-                    targetWebView = cachedWebView;
-                }
-                else
-                {
-                    // 存在しないので、新規に WebView2 インスタンスを作成
-                    targetWebView = CreateNewWebView();
-                    WebViewContainer.Children.Add(targetWebView);
-                    _bookmarkWebViews[item] = targetWebView;
-                    item.IsLoaded = true;
-
-                    // WebView2 の初期化
-                    await targetWebView.EnsureCoreWebView2Async();
-                    
-                    // 現在のUserAgent設定を適用
-                    if (_defaultUserAgent != null)
-                    {
-                        targetWebView.CoreWebView2.Settings.UserAgent = _isMobileMode ? MobileUserAgent : _defaultUserAgent;
-                    }
-                    
-                    // イベント購読
-                    targetWebView.CoreWebView2.SourceChanged += CoreWebView2_SourceChanged;
-                    targetWebView.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
-                    
-                    // ロード開始
-                    targetWebView.Source = new Uri(item.Url);
+                    OpenBookmarkInBottomWindow(item);
+                    e.Handled = true;
+                    return;
                 }
 
-                // 画面上の切り替え：対象以外の WebView を Collapsed にし、対象を Visible にする
-                if (_defaultWebView != null)
-                {
-                    _defaultWebView.Visibility = Visibility.Collapsed;
-                }
-
-                foreach (var kvp in _bookmarkWebViews)
-                {
-                    if (kvp.Key == item)
-                    {
-                        kvp.Value.Visibility = Visibility.Visible;
-                    }
-                    else
-                    {
-                        kvp.Value.Visibility = Visibility.Collapsed;
-                    }
-                }
-
-                // アクティブ WebView の更新とアドレスバーの反映
-                _activeWebView = targetWebView;
-                if (_activeWebView.Source != null)
-                {
-                    UrlTextBox.Text = _activeWebView.Source.ToString();
-                }
+                ShowBookmarkWebView(item, toBottom: false);
             }
+            e.Handled = true;
         }
 
 
@@ -1246,6 +1196,178 @@ namespace MugiSideBrowser
             e.Handled = true;
         }
 
+        private async void ShowBookmarkWebView(BookmarkItem item, bool toBottom)
+        {
+            Microsoft.Web.WebView2.Wpf.WebView2 targetWebView;
+
+            // 1. WebViewの取得または生成
+            if (_bookmarkWebViews.TryGetValue(item, out var cachedWebView))
+            {
+                targetWebView = cachedWebView;
+            }
+            else
+            {
+                targetWebView = CreateNewWebView();
+                _bookmarkWebViews[item] = targetWebView;
+                item.IsLoaded = true;
+
+                // 先に目的のコンテナに追加する
+                if (toBottom)
+                {
+                    if (!WebViewBottomContainer.Children.Contains(targetWebView))
+                    {
+                        WebViewBottomContainer.Children.Add(targetWebView);
+                    }
+                }
+                else
+                {
+                    if (!WebViewContainer.Children.Contains(targetWebView))
+                    {
+                        WebViewContainer.Children.Add(targetWebView);
+                    }
+                }
+
+                // 初期化とロード
+                await targetWebView.EnsureCoreWebView2Async();
+                if (_defaultUserAgent != null)
+                {
+                    targetWebView.CoreWebView2.Settings.UserAgent = _isMobileMode ? MobileUserAgent : _defaultUserAgent;
+                }
+                targetWebView.CoreWebView2.SourceChanged += CoreWebView2_SourceChanged;
+                targetWebView.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
+                targetWebView.Source = new Uri(item.Url);
+            }
+
+            // 2. 引っ越し処理と親の制御
+            if (toBottom)
+            {
+                // もし上が親なら取り外す
+                if (WebViewContainer.Children.Contains(targetWebView))
+                {
+                    WebViewContainer.Children.Remove(targetWebView);
+                    ResetToDefaultWebView();
+                }
+
+                // 下のコンテナに追加されていなければ追加する
+                if (!WebViewBottomContainer.Children.Contains(targetWebView))
+                {
+                    WebViewBottomContainer.Children.Add(targetWebView);
+                }
+
+                // 下部コンテナ内の他の要素を Collapsed にし、対象のみを Visible にする
+                if (_defaultWebViewBottom != null)
+                {
+                    _defaultWebViewBottom.Visibility = Visibility.Collapsed;
+                }
+                foreach (var kvp in _bookmarkWebViews)
+                {
+                    if (WebViewBottomContainer.Children.Contains(kvp.Value))
+                    {
+                        kvp.Value.Visibility = (kvp.Key == item) ? Visibility.Visible : Visibility.Collapsed;
+                    }
+                }
+
+                _activeWebView = targetWebView;
+                UrlTextBox.Text = _activeWebView.Source?.ToString() ?? "";
+            }
+            else
+            {
+                // もし下が親なら取り外す
+                if (WebViewBottomContainer.Children.Contains(targetWebView))
+                {
+                    WebViewBottomContainer.Children.Remove(targetWebView);
+                    ResetToDefaultBottomWebView();
+                }
+
+                // 上のコンテナに追加されていなければ追加する
+                if (!WebViewContainer.Children.Contains(targetWebView))
+                {
+                    WebViewContainer.Children.Add(targetWebView);
+                }
+
+                // 上部コンテナ内の他の要素を Collapsed にし、対象のみを Visible にする
+                if (_defaultWebView != null)
+                {
+                    _defaultWebView.Visibility = Visibility.Collapsed;
+                }
+                foreach (var kvp in _bookmarkWebViews)
+                {
+                    if (WebViewContainer.Children.Contains(kvp.Value))
+                    {
+                        kvp.Value.Visibility = (kvp.Key == item) ? Visibility.Visible : Visibility.Collapsed;
+                    }
+                }
+
+                _activeWebView = targetWebView;
+                UrlTextBox.Text = _activeWebView.Source?.ToString() ?? "";
+            }
+
+            UpdateBookmarkActiveState();
+        }
+
+        private void UpdateBookmarkActiveState()
+        {
+            if (_bookmarkService == null || _bookmarkService.Bookmarks == null) return;
+
+            foreach (var b in _bookmarkService.Bookmarks)
+            {
+                if (_bookmarkWebViews.TryGetValue(b, out var wv))
+                {
+                    b.IsActive = (_activeWebView == wv);
+                }
+                else
+                {
+                    b.IsActive = false;
+                }
+            }
+        }
+
+        private void ResetToDefaultBottomWebView()
+        {
+            if (_defaultWebViewBottom != null)
+            {
+                _defaultWebViewBottom.Visibility = Visibility.Visible;
+                if (_activeWebView == null || WebViewBottomContainer.Children.Contains(_activeWebView))
+                {
+                    _activeWebView = _defaultWebViewBottom;
+                    if (_activeWebView.Source != null)
+                    {
+                        UrlTextBox.Text = _activeWebView.Source.ToString();
+                    }
+                }
+            }
+            UpdateBookmarkActiveState();
+        }
+
+        private void OpenInBottomWindow_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.MenuItem menuItem && menuItem.DataContext is BookmarkItem item)
+            {
+                OpenBookmarkInBottomWindow(item);
+            }
+        }
+
+        private void OpenBookmarkInBottomWindow(BookmarkItem item)
+        {
+            // 上下分割が非表示の場合は分割を表示する
+            bool isSplit = BottomRow.Height.Value > 0;
+            if (!isSplit)
+            {
+                // 分割表示にする (50:50)
+                TopRow.Height = new GridLength(1, GridUnitType.Star);
+                BottomRow.Height = new GridLength(1, GridUnitType.Star);
+                VerticalSplitter.Visibility = Visibility.Visible;
+                WebViewBottomContainer.Visibility = Visibility.Visible;
+                
+                if (!_isBottomInitialized)
+                {
+                    InitializeBottomWebView();
+                }
+            }
+
+            ShowBookmarkWebView(item, toBottom: true);
+        }
+
         private void DeleteBookmark_Click(object sender, RoutedEventArgs e)
         {
             if (sender is System.Windows.Controls.MenuItem menuItem && menuItem.DataContext is BookmarkItem item)
@@ -1271,10 +1393,13 @@ namespace MugiSideBrowser
                 if (_activeWebView == wv)
                 {
                     ResetToDefaultWebView();
+                    ResetToDefaultBottomWebView();
                 }
 
-                // コンテナから削除して破棄
+                // 両方のコンテナから確実に削除
                 WebViewContainer.Children.Remove(wv);
+                WebViewBottomContainer.Children.Remove(wv);
+                
                 try { wv.Dispose(); } catch { }
                 _bookmarkWebViews.Remove(item);
                 item.IsLoaded = false;
@@ -1287,21 +1412,16 @@ namespace MugiSideBrowser
             if (_defaultWebView != null)
             {
                 _defaultWebView.Visibility = Visibility.Visible;
-                _activeWebView = _defaultWebView;
-                if (_activeWebView.Source != null)
+                if (_activeWebView == null || WebViewContainer.Children.Contains(_activeWebView))
                 {
-                    UrlTextBox.Text = _activeWebView.Source.ToString();
+                    _activeWebView = _defaultWebView;
+                    if (_activeWebView.Source != null)
+                    {
+                        UrlTextBox.Text = _activeWebView.Source.ToString();
+                    }
                 }
             }
-            
-            // すべてのブックマークの IsActive を解除
-            if (_bookmarkService != null && _bookmarkService.Bookmarks != null)
-            {
-                foreach (var b in _bookmarkService.Bookmarks)
-                {
-                    b.IsActive = false;
-                }
-            }
+            UpdateBookmarkActiveState();
         }
 
 
