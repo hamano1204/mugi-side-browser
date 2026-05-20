@@ -59,6 +59,32 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource SelectionBackground}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Opacity" Value="0.9"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Opacity" Value="0.8"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Grid x:Name="RootGrid">
@@ -360,17 +386,107 @@
                         <RowDefinition Height="0" x:Name="BottomRow"/>
                     </Grid.RowDefinitions>
 
-                    <Grid x:Name="WebViewContainer" Grid.Row="0" Margin="0"/>
+                    <!-- Top Panel -->
+                    <Grid x:Name="WebViewContainer" Grid.Row="0" Margin="0" PreviewMouseDown="WebViewContainer_PreviewMouseDown">
+                        <Grid x:Name="WebViewTopHolder"/>
+                        
+                        <!-- Top Sleep Placeholder -->
+                        <Grid x:Name="TopSleepPlaceholder" Visibility="Collapsed" Background="{DynamicResource AppBackground}" MouseLeftButtonDown="TopSleepPlaceholder_Click">
+                            <Border BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="12" 
+                                    Background="{DynamicResource TitleBarBackground}" Margin="20" Padding="20"
+                                    VerticalAlignment="Center" HorizontalAlignment="Stretch" MaxWidth="320">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="48" 
+                                               Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                                    <TextBlock x:Name="TopSleepTitle" Text="ページはスリープ状態です" FontWeight="SemiBold" FontSize="16" 
+                                               Foreground="{DynamicResource PrimaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                    <TextBlock Text="メモリを節約するため、バックグラウンドでの動作を一時停止しました。再開ボタンを押すと復帰します。" 
+                                               FontSize="12" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,20"/>
+                                    <Button Content="ページを再開する" Click="ResumeTop_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
 
                     <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="{DynamicResource BorderColor}" 
                                   Visibility="Collapsed" x:Name="VerticalSplitter1" ShowsPreview="True"/>
 
-                    <Grid x:Name="WebViewMiddleContainer" Grid.Row="2" Margin="0" Visibility="Collapsed"/>
+                    <Grid x:Name="WebViewMiddleContainer" Grid.Row="2" Margin="0" Visibility="Collapsed" PreviewMouseDown="WebViewMiddleContainer_PreviewMouseDown">
+                        <Grid x:Name="WebViewMiddleHolder"/>
+                        
+                        <!-- Middle Sleep Placeholder -->
+                        <Grid x:Name="MiddleSleepPlaceholder" Visibility="Collapsed" Background="{DynamicResource AppBackground}" MouseLeftButtonDown="MiddleSleepPlaceholder_Click">
+                            <Border BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="12" 
+                                    Background="{DynamicResource TitleBarBackground}" Margin="20" Padding="20"
+                                    VerticalAlignment="Center" HorizontalAlignment="Stretch" MaxWidth="320">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="48" 
+                                               Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                                    <TextBlock x:Name="MiddleSleepTitle" Text="ページはスリープ状態です" FontWeight="SemiBold" FontSize="16" 
+                                               Foreground="{DynamicResource PrimaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                    <TextBlock Text="メモリを節約するため、バックグラウンドでの動作を一時停止しました。再開ボタンを押すと復帰します。" 
+                                               FontSize="12" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,20"/>
+                                    <Button Content="ページを再開する" Click="ResumeMiddle_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Middle Empty Placeholder -->
+                        <Grid x:Name="MiddleEmptyPlaceholder" Visibility="Visible" Background="{DynamicResource AppBackground}">
+                            <Border BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="12" 
+                                    Background="{DynamicResource TitleBarBackground}" Margin="20" Padding="20"
+                                    VerticalAlignment="Center" HorizontalAlignment="Stretch" MaxWidth="320">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="48" 
+                                               Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                                    <TextBlock Text="分割ウィンドウ (中)" FontWeight="SemiBold" FontSize="16" 
+                                               Foreground="{DynamicResource PrimaryText}" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,0,0,8"/>
+                                    <TextBlock Text="お気に入りをここに表示できます。&#x0a;サイドバーのお気に入りを右クリックして「中のウィンドウで開く」を選択するか、Ctrlキーを押しながらお気に入りクリックしてください。" 
+                                               FontSize="12" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
 
                     <GridSplitter Grid.Row="3" Height="4" HorizontalAlignment="Stretch" Background="{DynamicResource BorderColor}" 
                                   Visibility="Collapsed" x:Name="VerticalSplitter2" ShowsPreview="True"/>
 
-                    <Grid x:Name="WebViewBottomContainer" Grid.Row="4" Margin="0" Visibility="Collapsed"/>
+                    <Grid x:Name="WebViewBottomContainer" Grid.Row="4" Margin="0" Visibility="Collapsed" PreviewMouseDown="WebViewBottomContainer_PreviewMouseDown">
+                        <Grid x:Name="WebViewBottomHolder"/>
+                        
+                        <!-- Bottom Sleep Placeholder -->
+                        <Grid x:Name="BottomSleepPlaceholder" Visibility="Collapsed" Background="{DynamicResource AppBackground}" MouseLeftButtonDown="BottomSleepPlaceholder_Click">
+                            <Border BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="12" 
+                                    Background="{DynamicResource TitleBarBackground}" Margin="20" Padding="20"
+                                    VerticalAlignment="Center" HorizontalAlignment="Stretch" MaxWidth="320">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="48" 
+                                               Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                                    <TextBlock x:Name="BottomSleepTitle" Text="ページはスリープ状態です" FontWeight="SemiBold" FontSize="16" 
+                                               Foreground="{DynamicResource PrimaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                    <TextBlock Text="メモリを節約するため、バックグラウンドでの動作を一時停止しました。再開ボタンを押すと復帰します。" 
+                                               FontSize="12" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,20"/>
+                                    <Button Content="ページを再開する" Click="ResumeBottom_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Bottom Empty Placeholder -->
+                        <Grid x:Name="BottomEmptyPlaceholder" Visibility="Visible" Background="{DynamicResource AppBackground}">
+                            <Border BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="12" 
+                                    Background="{DynamicResource TitleBarBackground}" Margin="20" Padding="20"
+                                    VerticalAlignment="Center" HorizontalAlignment="Stretch" MaxWidth="320">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="48" 
+                                               Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                                    <TextBlock Text="分割ウィンドウ (下)" FontWeight="SemiBold" FontSize="16" 
+                                               Foreground="{DynamicResource PrimaryText}" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,0,0,8"/>
+                                    <TextBlock Text="お気に入りをここに表示できます。&#x0a;サイドバーのお気に入りを右クリックして「下のウィンドウで開く」を選択するか、Ctrl+Shiftキーを押しながらお気に入りクリックしてください。" 
+                                               FontSize="12" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
                 </Grid>
             </Grid>
         </Grid>
