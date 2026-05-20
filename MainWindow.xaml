@@ -85,6 +85,30 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="HeaderCloseButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryText}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="FontSize" Value="8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource DangerForeground}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Grid x:Name="RootGrid">
@@ -230,7 +254,7 @@
                                                     ToolTip="{Binding Title}"
                                                     PreviewMouseLeftButtonDown="Bookmark_PreviewMouseLeftButtonDown" 
                                                     MouseMove="Bookmark_MouseMove"
-                                                    MouseLeftButtonUp="Bookmark_MouseLeftButtonUp"
+                                                    MouseUp="Bookmark_MouseUp"
                                                     AllowDrop="True" Drop="Bookmark_Drop" DragOver="Bookmark_DragOver">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
@@ -388,13 +412,28 @@
 
                     <!-- Top Panel -->
                     <Grid x:Name="WebViewContainer" Grid.Row="0" Margin="0" PreviewMouseDown="WebViewContainer_PreviewMouseDown">
-                        <Grid x:Name="WebViewTopHolder"/>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Top Header -->
+                        <Border x:Name="TopHeader" Grid.Row="0" Height="24" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" MouseLeftButtonDown="PaneHeader_MouseDown" Tag="Top" Cursor="Hand">
+                            <DockPanel Margin="8,0">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Ellipse x:Name="TopActiveIndicator" Width="6" Height="6" Fill="{DynamicResource SelectionBackground}" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Visible"/>
+                                    <TextBlock x:Name="TopHeaderText" Text="メイン画面" FontSize="11" Foreground="{DynamicResource PrimaryText}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+
+                        <Grid x:Name="WebViewTopHolder" Grid.Row="1"/>
                         
                         <!-- Top Sleep Placeholder -->
-                        <Grid x:Name="TopSleepPlaceholder" Visibility="Collapsed" Background="{DynamicResource AppBackground}" MouseLeftButtonDown="TopSleepPlaceholder_Click">
+                        <Grid x:Name="TopSleepPlaceholder" Grid.Row="1" Visibility="Collapsed" Background="{DynamicResource AppBackground}" MouseLeftButtonDown="TopSleepPlaceholder_Click">
                             <Border BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="12" 
                                     Background="{DynamicResource TitleBarBackground}" Margin="20" Padding="20"
-                                    VerticalAlignment="Center" HorizontalAlignment="Stretch" MaxWidth="320">
+                                     VerticalAlignment="Center" HorizontalAlignment="Stretch" MaxWidth="320">
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="48" 
                                                Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
@@ -411,11 +450,28 @@
                     <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="{DynamicResource BorderColor}" 
                                   Visibility="Collapsed" x:Name="VerticalSplitter1" ShowsPreview="True"/>
 
+                    <!-- Middle Panel -->
                     <Grid x:Name="WebViewMiddleContainer" Grid.Row="2" Margin="0" Visibility="Collapsed" PreviewMouseDown="WebViewMiddleContainer_PreviewMouseDown">
-                        <Grid x:Name="WebViewMiddleHolder"/>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Middle Header -->
+                        <Border x:Name="MiddleHeader" Grid.Row="0" Height="24" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" MouseLeftButtonDown="PaneHeader_MouseDown" Tag="Middle" Cursor="Hand">
+                            <DockPanel Margin="8,0">
+                                <Button x:Name="CloseMiddleButton" Content="✕" DockPanel.Dock="Right" Style="{StaticResource HeaderCloseButtonStyle}" Click="CloseMiddlePane_Click" ToolTip="この画面を閉じる"/>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Ellipse x:Name="MiddleActiveIndicator" Width="6" Height="6" Fill="{DynamicResource SelectionBackground}" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    <TextBlock x:Name="MiddleHeaderText" Text="サブ画面 (中)" FontSize="11" Foreground="{DynamicResource SecondaryText}" FontWeight="Normal" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+
+                        <Grid x:Name="WebViewMiddleHolder" Grid.Row="1"/>
                         
                         <!-- Middle Sleep Placeholder -->
-                        <Grid x:Name="MiddleSleepPlaceholder" Visibility="Collapsed" Background="{DynamicResource AppBackground}" MouseLeftButtonDown="MiddleSleepPlaceholder_Click">
+                        <Grid x:Name="MiddleSleepPlaceholder" Grid.Row="1" Visibility="Collapsed" Background="{DynamicResource AppBackground}" MouseLeftButtonDown="MiddleSleepPlaceholder_Click">
                             <Border BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="12" 
                                     Background="{DynamicResource TitleBarBackground}" Margin="20" Padding="20"
                                     VerticalAlignment="Center" HorizontalAlignment="Stretch" MaxWidth="320">
@@ -432,7 +488,7 @@
                         </Grid>
 
                         <!-- Middle Empty Placeholder -->
-                        <Grid x:Name="MiddleEmptyPlaceholder" Visibility="Visible" Background="{DynamicResource AppBackground}">
+                        <Grid x:Name="MiddleEmptyPlaceholder" Grid.Row="1" Visibility="Visible" Background="{DynamicResource AppBackground}">
                             <Border BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="12" 
                                     Background="{DynamicResource TitleBarBackground}" Margin="20" Padding="20"
                                     VerticalAlignment="Center" HorizontalAlignment="Stretch" MaxWidth="320">
@@ -451,11 +507,28 @@
                     <GridSplitter Grid.Row="3" Height="4" HorizontalAlignment="Stretch" Background="{DynamicResource BorderColor}" 
                                   Visibility="Collapsed" x:Name="VerticalSplitter2" ShowsPreview="True"/>
 
-                    <Grid x:Name="WebViewBottomContainer" Grid.Row="4" Margin="0" Visibility="Collapsed" PreviewMouseDown="WebViewBottomContainer_PreviewMouseDown">
-                        <Grid x:Name="WebViewBottomHolder"/>
+                    <!-- Bottom Panel -->
+                    <Grid x:Name="WebViewBottomContainer" Grid.Row="4" Margin="0" PreviewMouseDown="WebViewBottomContainer_PreviewMouseDown">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Bottom Header -->
+                        <Border x:Name="BottomHeader" Grid.Row="0" Height="24" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" MouseLeftButtonDown="PaneHeader_MouseDown" Tag="Bottom" Cursor="Hand">
+                            <DockPanel Margin="8,0">
+                                <Button x:Name="CloseBottomButton" Content="✕" DockPanel.Dock="Right" Style="{StaticResource HeaderCloseButtonStyle}" Click="CloseBottomPane_Click" ToolTip="この画面を閉じる"/>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Ellipse x:Name="BottomActiveIndicator" Width="6" Height="6" Fill="{DynamicResource SelectionBackground}" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                    <TextBlock x:Name="BottomHeaderText" Text="サブ画面 (下)" FontSize="11" Foreground="{DynamicResource SecondaryText}" FontWeight="Normal" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+
+                        <Grid x:Name="WebViewBottomHolder" Grid.Row="1"/>
                         
                         <!-- Bottom Sleep Placeholder -->
-                        <Grid x:Name="BottomSleepPlaceholder" Visibility="Collapsed" Background="{DynamicResource AppBackground}" MouseLeftButtonDown="BottomSleepPlaceholder_Click">
+                        <Grid x:Name="BottomSleepPlaceholder" Grid.Row="1" Visibility="Collapsed" Background="{DynamicResource AppBackground}" MouseLeftButtonDown="BottomSleepPlaceholder_Click">
                             <Border BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="12" 
                                     Background="{DynamicResource TitleBarBackground}" Margin="20" Padding="20"
                                     VerticalAlignment="Center" HorizontalAlignment="Stretch" MaxWidth="320">
@@ -472,7 +545,7 @@
                         </Grid>
 
                         <!-- Bottom Empty Placeholder -->
-                        <Grid x:Name="BottomEmptyPlaceholder" Visibility="Visible" Background="{DynamicResource AppBackground}">
+                        <Grid x:Name="BottomEmptyPlaceholder" Grid.Row="1" Visibility="Visible" Background="{DynamicResource AppBackground}">
                             <Border BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="12" 
                                     Background="{DynamicResource TitleBarBackground}" Margin="20" Padding="20"
                                     VerticalAlignment="Center" HorizontalAlignment="Stretch" MaxWidth="320">

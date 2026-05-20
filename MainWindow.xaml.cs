@@ -42,7 +42,17 @@ namespace MugiSideBrowser
             Double,
             Triple
         }
-        private SplitMode _currentSplitMode = SplitMode.Single;
+        private bool _isMiddlePaneOpen = false;
+        private bool _isBottomPaneOpen = false;
+        private SplitMode _currentSplitMode
+        {
+            get
+            {
+                if (_isMiddlePaneOpen && _isBottomPaneOpen) return SplitMode.Triple;
+                if (_isMiddlePaneOpen || _isBottomPaneOpen) return SplitMode.Double;
+                return SplitMode.Single;
+            }
+        }
 
         public enum TargetWindow
         {
@@ -1009,43 +1019,79 @@ namespace MugiSideBrowser
             switch (_currentSplitMode)
             {
                 case SplitMode.Single:
-                    // 2分割にする
-                    TopRow.Height = new GridLength(1, GridUnitType.Star);
-                    MiddleRow.Height = new GridLength(0);
-                    BottomRow.Height = new GridLength(1, GridUnitType.Star);
-                    VerticalSplitter1.Visibility = Visibility.Visible;
-                    VerticalSplitter2.Visibility = Visibility.Collapsed;
-                    WebViewBottomContainer.Visibility = Visibility.Visible;
-                    WebViewMiddleContainer.Visibility = Visibility.Collapsed;
-                    _currentSplitMode = SplitMode.Double;
+                    _isMiddlePaneOpen = false;
+                    _isBottomPaneOpen = true;
                     break;
 
                 case SplitMode.Double:
-                    // 3分割にする
-                    TopRow.Height = new GridLength(1, GridUnitType.Star);
-                    MiddleRow.Height = new GridLength(1, GridUnitType.Star);
-                    BottomRow.Height = new GridLength(1, GridUnitType.Star);
-                    VerticalSplitter1.Visibility = Visibility.Visible;
-                    VerticalSplitter2.Visibility = Visibility.Visible;
-                    WebViewMiddleContainer.Visibility = Visibility.Visible;
-                    WebViewBottomContainer.Visibility = Visibility.Visible;
-                    _currentSplitMode = SplitMode.Triple;
+                    _isMiddlePaneOpen = true;
+                    _isBottomPaneOpen = true;
                     break;
 
                 case SplitMode.Triple:
-                    // 1画面に戻す
-                    TopRow.Height = new GridLength(1, GridUnitType.Star);
-                    MiddleRow.Height = new GridLength(0);
-                    BottomRow.Height = new GridLength(0);
-                    VerticalSplitter1.Visibility = Visibility.Collapsed;
-                    VerticalSplitter2.Visibility = Visibility.Collapsed;
-                    WebViewMiddleContainer.Visibility = Visibility.Collapsed;
-                    WebViewBottomContainer.Visibility = Visibility.Collapsed;
-                    _currentSplitMode = SplitMode.Single;
+                    _isMiddlePaneOpen = false;
+                    _isBottomPaneOpen = false;
                     break;
             }
 
+            ApplySplitLayout();
             UpdateActiveWebViewAfterSplitChange();
+        }
+
+        private void ApplySplitLayout()
+        {
+            if (_isMiddlePaneOpen && _isBottomPaneOpen)
+            {
+                // 3分割
+                TopRow.Height = new GridLength(1, GridUnitType.Star);
+                MiddleRow.Height = new GridLength(1, GridUnitType.Star);
+                BottomRow.Height = new GridLength(1, GridUnitType.Star);
+
+                VerticalSplitter1.Visibility = Visibility.Visible;
+                VerticalSplitter2.Visibility = Visibility.Visible;
+
+                WebViewMiddleContainer.Visibility = Visibility.Visible;
+                WebViewBottomContainer.Visibility = Visibility.Visible;
+            }
+            else if (_isMiddlePaneOpen)
+            {
+                // 上・中
+                TopRow.Height = new GridLength(1, GridUnitType.Star);
+                MiddleRow.Height = new GridLength(1, GridUnitType.Star);
+                BottomRow.Height = new GridLength(0);
+
+                VerticalSplitter1.Visibility = Visibility.Visible;
+                VerticalSplitter2.Visibility = Visibility.Collapsed;
+
+                WebViewMiddleContainer.Visibility = Visibility.Visible;
+                WebViewBottomContainer.Visibility = Visibility.Collapsed;
+            }
+            else if (_isBottomPaneOpen)
+            {
+                // 上・下
+                TopRow.Height = new GridLength(1, GridUnitType.Star);
+                MiddleRow.Height = new GridLength(0);
+                BottomRow.Height = new GridLength(1, GridUnitType.Star);
+
+                VerticalSplitter1.Visibility = Visibility.Visible;
+                VerticalSplitter2.Visibility = Visibility.Collapsed;
+
+                WebViewMiddleContainer.Visibility = Visibility.Collapsed;
+                WebViewBottomContainer.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                // 1画面
+                TopRow.Height = new GridLength(1, GridUnitType.Star);
+                MiddleRow.Height = new GridLength(0);
+                BottomRow.Height = new GridLength(0);
+
+                VerticalSplitter1.Visibility = Visibility.Collapsed;
+                VerticalSplitter2.Visibility = Visibility.Collapsed;
+
+                WebViewMiddleContainer.Visibility = Visibility.Collapsed;
+                WebViewBottomContainer.Visibility = Visibility.Collapsed;
+            }
         }
 
         private BookmarkItem? GetActiveBookmarkForPane(TargetWindow pane)
@@ -1334,6 +1380,18 @@ namespace MugiSideBrowser
             }
         }
 
+        private void Bookmark_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == System.Windows.Input.MouseButton.Left)
+            {
+                Bookmark_MouseLeftButtonUp(sender, e);
+            }
+            else if (e.ChangedButton == System.Windows.Input.MouseButton.Middle)
+            {
+                Bookmark_MouseMiddleButtonUp(sender, e);
+            }
+        }
+
         private void Bookmark_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (sender is FrameworkElement element && element.DataContext is BookmarkItem item)
@@ -1348,18 +1406,47 @@ namespace MugiSideBrowser
                 if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Control | System.Windows.Input.ModifierKeys.Shift))
                 {
                     OpenBookmarkInBottomWindow(item);
-                    e.Handled = true;
-                    return;
                 }
                 // Ctrl キーが押されている場合は中のウィンドウで開く
-                if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Control))
+                else if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Control))
                 {
                     OpenBookmarkInMiddleWindow(item);
+                }
+                else
+                {
+                    // 通常クリック時は、現在アクティブ（フォーカス）なペインでお気に入りを開く
+                    ShowBookmarkWebView(item, _activePane);
+                }
+            }
+            e.Handled = true;
+        }
+
+        private void Bookmark_MouseMiddleButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement element && element.DataContext is BookmarkItem item)
+            {
+                if (item.IsSeparator)
+                {
                     e.Handled = true;
                     return;
                 }
 
-                ShowBookmarkWebView(item, TargetWindow.Top);
+                // マウスの中ボタン（ホイールクリック）で画面分割を自動で増やしながら開く
+                switch (_currentSplitMode)
+                {
+                    case SplitMode.Single:
+                        // 1画面時は2分割（下ペイン）にして開く
+                        OpenBookmarkInBottomWindow(item);
+                        break;
+                    case SplitMode.Double:
+                        // 2画面時は3分割（中ペイン）にして開く
+                        OpenBookmarkInMiddleWindow(item);
+                        break;
+                    case SplitMode.Triple:
+                        // 既に3分割されている場合は、現在アクティブなペインで開く
+                        ShowBookmarkWebView(item, _activePane);
+                        break;
+                }
             }
             e.Handled = true;
         }
@@ -1550,6 +1637,41 @@ namespace MugiSideBrowser
             {
                 b.IsActive = (b == activeB);
             }
+            UpdatePaneHeadersUI();
+        }
+
+        private void UpdatePaneHeadersUI()
+        {
+            if (TopHeader == null || TopActiveIndicator == null || TopHeaderText == null) return;
+            if (MiddleHeader == null || MiddleActiveIndicator == null || MiddleHeaderText == null) return;
+            if (BottomHeader == null || BottomActiveIndicator == null || BottomHeaderText == null) return;
+
+            // テーマ色ブラシの取得（見つからない場合は標準色をフォールバック）
+            var activeBg = (System.Windows.Media.Brush)TryFindResource("HoverBackground") ?? System.Windows.Media.Brushes.DimGray;
+            var inactiveBg = (System.Windows.Media.Brush)TryFindResource("TitleBarBackground") ?? System.Windows.Media.Brushes.Transparent;
+            var activeText = (System.Windows.Media.Brush)TryFindResource("PrimaryText") ?? System.Windows.Media.Brushes.White;
+            var inactiveText = (System.Windows.Media.Brush)TryFindResource("SecondaryText") ?? System.Windows.Media.Brushes.Gray;
+
+            // メメイン（上）ペインの更新
+            bool isTopActive = (_activePane == TargetWindow.Top);
+            TopActiveIndicator.Visibility = isTopActive ? Visibility.Visible : Visibility.Collapsed;
+            TopHeaderText.Foreground = isTopActive ? activeText : inactiveText;
+            TopHeaderText.FontWeight = isTopActive ? FontWeights.SemiBold : FontWeights.Normal;
+            TopHeader.Background = isTopActive ? activeBg : inactiveBg;
+
+            // 中ペインの更新
+            bool isMiddleActive = (_activePane == TargetWindow.Middle);
+            MiddleActiveIndicator.Visibility = isMiddleActive ? Visibility.Visible : Visibility.Collapsed;
+            MiddleHeaderText.Foreground = isMiddleActive ? activeText : inactiveText;
+            MiddleHeaderText.FontWeight = isMiddleActive ? FontWeights.SemiBold : FontWeights.Normal;
+            MiddleHeader.Background = isMiddleActive ? activeBg : inactiveBg;
+
+            // 下ペインの更新
+            bool isBottomActive = (_activePane == TargetWindow.Bottom);
+            BottomActiveIndicator.Visibility = isBottomActive ? Visibility.Visible : Visibility.Collapsed;
+            BottomHeaderText.Foreground = isBottomActive ? activeText : inactiveText;
+            BottomHeaderText.FontWeight = isBottomActive ? FontWeights.SemiBold : FontWeights.Normal;
+            BottomHeader.Background = isBottomActive ? activeBg : inactiveBg;
         }
 
         private void ResetToDefaultBottomWebView()
@@ -1571,19 +1693,8 @@ namespace MugiSideBrowser
 
         private void OpenBookmarkInMiddleWindow(BookmarkItem item)
         {
-            // 中部ウィンドウを表示するため、3分割にする
-            if (_currentSplitMode != SplitMode.Triple)
-            {
-                TopRow.Height = new GridLength(1, GridUnitType.Star);
-                MiddleRow.Height = new GridLength(1, GridUnitType.Star);
-                BottomRow.Height = new GridLength(1, GridUnitType.Star);
-                VerticalSplitter1.Visibility = Visibility.Visible;
-                VerticalSplitter2.Visibility = Visibility.Visible;
-                WebViewMiddleContainer.Visibility = Visibility.Visible;
-                WebViewBottomContainer.Visibility = Visibility.Visible;
-                _currentSplitMode = SplitMode.Triple;
-            }
-
+            _isMiddlePaneOpen = true;
+            ApplySplitLayout();
             ShowBookmarkWebView(item, TargetWindow.Middle);
         }
 
@@ -1597,20 +1708,74 @@ namespace MugiSideBrowser
 
         private void OpenBookmarkInBottomWindow(BookmarkItem item)
         {
-            // 下部ウィンドウを表示するため、少なくとも2分割にする
-            if (_currentSplitMode == SplitMode.Single)
-            {
-                TopRow.Height = new GridLength(1, GridUnitType.Star);
-                MiddleRow.Height = new GridLength(0);
-                BottomRow.Height = new GridLength(1, GridUnitType.Star);
-                VerticalSplitter1.Visibility = Visibility.Visible;
-                VerticalSplitter2.Visibility = Visibility.Collapsed;
-                WebViewBottomContainer.Visibility = Visibility.Visible;
-                WebViewMiddleContainer.Visibility = Visibility.Collapsed;
-                _currentSplitMode = SplitMode.Double;
-            }
-
+            _isBottomPaneOpen = true;
+            ApplySplitLayout();
             ShowBookmarkWebView(item, TargetWindow.Bottom);
+        }
+
+        private void PaneHeader_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement element && element.Tag is string tag)
+            {
+                switch (tag)
+                {
+                    case "Top":
+                        _activePane = TargetWindow.Top;
+                        break;
+                    case "Middle":
+                        if (_isMiddlePaneOpen) _activePane = TargetWindow.Middle;
+                        break;
+                    case "Bottom":
+                        if (_isBottomPaneOpen) _activePane = TargetWindow.Bottom;
+                        break;
+                }
+
+                // アクティブペイン内の表示中WebViewを_activeWebViewに設定
+                var visibleWv = _activePane switch
+                {
+                    TargetWindow.Top => WebViewTopHolder.Children.OfType<Microsoft.Web.WebView2.Wpf.WebView2>().FirstOrDefault(w => w.Visibility == Visibility.Visible),
+                    TargetWindow.Middle => WebViewMiddleHolder.Children.OfType<Microsoft.Web.WebView2.Wpf.WebView2>().FirstOrDefault(w => w.Visibility == Visibility.Visible),
+                    TargetWindow.Bottom => WebViewBottomHolder.Children.OfType<Microsoft.Web.WebView2.Wpf.WebView2>().FirstOrDefault(w => w.Visibility == Visibility.Visible),
+                    _ => null
+                };
+
+                _activeWebView = visibleWv;
+                if (_activeWebView != null && _activeWebView.Source != null)
+                {
+                    UrlTextBox.Text = _activeWebView.Source.ToString();
+                }
+                else
+                {
+                    var activeB = GetActiveBookmarkForPane(_activePane);
+                    UrlTextBox.Text = activeB?.Url ?? "";
+                }
+
+                UpdateBookmarkActiveState();
+            }
+        }
+
+        private void CloseMiddlePane_Click(object sender, RoutedEventArgs e)
+        {
+            _isMiddlePaneOpen = false;
+            ApplySplitLayout();
+            if (_activePane == TargetWindow.Middle)
+            {
+                _activePane = TargetWindow.Top;
+            }
+            UpdateActiveWebViewAfterSplitChange();
+            e.Handled = true;
+        }
+
+        private void CloseBottomPane_Click(object sender, RoutedEventArgs e)
+        {
+            _isBottomPaneOpen = false;
+            ApplySplitLayout();
+            if (_activePane == TargetWindow.Bottom)
+            {
+                _activePane = TargetWindow.Top;
+            }
+            UpdateActiveWebViewAfterSplitChange();
+            e.Handled = true;
         }
 
         private void DeleteBookmark_Click(object sender, RoutedEventArgs e)
