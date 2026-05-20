@@ -48,13 +48,18 @@ namespace MugiSideBrowser
                 Directory.CreateDirectory(AppDataPath);
             }
 
+            string tempPath = FilePath + ".tmp";
+
             for (int i = 0; i < MaxRetries; i++)
             {
                 try
                 {
-                    // Use FileShare.None for exclusive write lock
-                    using FileStream stream = new FileStream(FilePath, FileMode.Create, FileAccess.Write, FileShare.None);
-                    await JsonSerializer.SerializeAsync(stream, bookmarks, new JsonSerializerOptions { WriteIndented = true });
+                    // Write to temp file first to ensure atomic save
+                    using (FileStream stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        await JsonSerializer.SerializeAsync(stream, bookmarks, new JsonSerializerOptions { WriteIndented = true });
+                    }
+                    File.Move(tempPath, FilePath, overwrite: true);
                     return;
                 }
                 catch (IOException)

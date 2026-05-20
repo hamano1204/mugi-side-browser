@@ -10,6 +10,7 @@ namespace MugiSideBrowser.Services
     {
         private ObservableCollection<BookmarkItem> _bookmarks;
         public ObservableCollection<BookmarkItem> Bookmarks => _bookmarks;
+        private readonly System.Threading.SemaphoreSlim _saveSemaphore = new System.Threading.SemaphoreSlim(1, 1);
 
         public BookmarkService()
         {
@@ -59,7 +60,15 @@ namespace MugiSideBrowser.Services
 
         private async Task SaveAsync()
         {
-            await BookmarkManager.SaveAsync(_bookmarks.ToList());
+            await _saveSemaphore.WaitAsync();
+            try
+            {
+                await BookmarkManager.SaveAsync(_bookmarks.ToList());
+            }
+            finally
+            {
+                _saveSemaphore.Release();
+            }
         }
     }
 }

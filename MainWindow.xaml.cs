@@ -1619,6 +1619,26 @@ namespace MugiSideBrowser
             {
                 DisposeBookmarkWebView(item);
                 _ = _bookmarkService.RemoveBookmarkAsync(item);
+
+                // 削除対象のブックマークがアクティブな場合は参照をクリアし適切なプレースホルダー表示に戻す
+                if (_activeBookmarkTop == item)
+                {
+                    _activeBookmarkTop = null;
+                    TopSleepPlaceholder.Visibility = Visibility.Collapsed;
+                    ResetToDefaultWebView();
+                }
+                if (_activeBookmarkMiddle == item)
+                {
+                    _activeBookmarkMiddle = null;
+                    MiddleSleepPlaceholder.Visibility = Visibility.Collapsed;
+                    MiddleEmptyPlaceholder.Visibility = Visibility.Visible;
+                }
+                if (_activeBookmarkBottom == item)
+                {
+                    _activeBookmarkBottom = null;
+                    BottomSleepPlaceholder.Visibility = Visibility.Collapsed;
+                    BottomEmptyPlaceholder.Visibility = Visibility.Visible;
+                }
             }
         }
 
@@ -1639,7 +1659,17 @@ namespace MugiSideBrowser
                 WebViewMiddleHolder.Children.Remove(wv);
                 WebViewBottomHolder.Children.Remove(wv);
                 
-                try { wv.Dispose(); } catch { }
+                try 
+                {
+                    wv.GotFocus -= WebView_GotFocus;
+                    if (wv.CoreWebView2 != null)
+                    {
+                        wv.CoreWebView2.SourceChanged -= CoreWebView2_SourceChanged;
+                        wv.CoreWebView2.NewWindowRequested -= CoreWebView2_NewWindowRequested;
+                    }
+                    wv.Dispose(); 
+                } 
+                catch { }
                 _bookmarkWebViews.Remove(item);
                 item.IsLoaded = false;
                 
@@ -1719,8 +1749,11 @@ namespace MugiSideBrowser
             var activeB = GetActiveBookmarkForPane(_activePane);
             if (_activeWebView == null && activeB != null)
             {
-                activeB.Url = url;
                 ShowBookmarkWebView(activeB, _activePane);
+                if (_activeWebView != null)
+                {
+                    _activeWebView.Source = new Uri(url);
+                }
             }
             else if (_activeWebView != null)
             {

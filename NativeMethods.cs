@@ -60,6 +60,7 @@ namespace MugiSideBrowser
         [DllImport("user32.dll")]
         public static extern uint RegisterWindowMessage(string lpString);
 
+        // Reserved for future display sizing checks
         [DllImport("user32.dll")]
         public static extern int GetSystemMetrics(int nIndex);
 
@@ -86,6 +87,7 @@ namespace MugiSideBrowser
 
         public const uint MONITOR_DEFAULTTONEAREST = 2;
 
+        // Reserved constants for system metrics query
         public const int SM_CXSCREEN = 0;
         public const int SM_CYSCREEN = 1;
 
@@ -98,9 +100,11 @@ namespace MugiSideBrowser
         [DllImport("user32.dll")]
         public static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
 
+        // Reserved for future window-dragging logic
         [DllImport("user32.dll")]
         public static extern bool ReleaseCapture();
 
+        // Reserved for future key checking
         [DllImport("user32.dll")]
         public static extern short GetAsyncKeyState(int vKey);
 

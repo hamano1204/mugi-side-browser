@@ -30,6 +30,10 @@ namespace MugiSideBrowser
             }
 
             base.OnStartup(e);
+
+            // StartupUri を削除したため、ここで MainWindow を生成して表示する
+            var mainWindow = new MainWindow();
+            mainWindow.Show();
         }
 
         protected override void OnExit(ExitEventArgs e)
