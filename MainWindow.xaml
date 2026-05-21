@@ -418,7 +418,7 @@
                         </Grid.RowDefinitions>
                         
                         <!-- Top Header -->
-                        <Border x:Name="TopHeader" Grid.Row="0" Height="24" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" MouseLeftButtonDown="PaneHeader_MouseDown" Tag="Top" Cursor="Hand">
+                        <Border x:Name="TopHeader" Grid.Row="0" Height="24" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" MouseLeftButtonDown="PaneHeader_MouseDown" Tag="Top" Cursor="Hand" AllowDrop="True" MouseMove="PaneHeader_MouseMove" DragOver="PaneHeader_DragOver" DragLeave="PaneHeader_DragLeave" Drop="PaneHeader_Drop">
                             <DockPanel Margin="8,0">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <Ellipse x:Name="TopActiveIndicator" Width="6" Height="6" Fill="{DynamicResource SelectionBackground}" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Visible"/>
@@ -447,8 +447,9 @@
                         </Grid>
                     </Grid>
 
-                    <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" Background="{DynamicResource BorderColor}" 
-                                  Visibility="Collapsed" x:Name="VerticalSplitter1" ShowsPreview="True"/>
+                    <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" VerticalAlignment="Center" 
+                                  ResizeDirection="Rows" ShowsPreview="False" Background="{DynamicResource BorderColor}" 
+                                  Visibility="Collapsed" x:Name="VerticalSplitter1"/>
 
                     <!-- Middle Panel -->
                     <Grid x:Name="WebViewMiddleContainer" Grid.Row="2" Margin="0" Visibility="Collapsed" PreviewMouseDown="WebViewMiddleContainer_PreviewMouseDown">
@@ -458,7 +459,7 @@
                         </Grid.RowDefinitions>
 
                         <!-- Middle Header -->
-                        <Border x:Name="MiddleHeader" Grid.Row="0" Height="24" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" MouseLeftButtonDown="PaneHeader_MouseDown" Tag="Middle" Cursor="Hand">
+                        <Border x:Name="MiddleHeader" Grid.Row="0" Height="24" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" MouseLeftButtonDown="PaneHeader_MouseDown" Tag="Middle" Cursor="Hand" AllowDrop="True" MouseMove="PaneHeader_MouseMove" DragOver="PaneHeader_DragOver" DragLeave="PaneHeader_DragLeave" Drop="PaneHeader_Drop">
                             <DockPanel Margin="8,0">
                                 <Button x:Name="CloseMiddleButton" Content="✕" DockPanel.Dock="Right" Style="{StaticResource HeaderCloseButtonStyle}" Click="CloseMiddlePane_Click" ToolTip="この画面を閉じる"/>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -504,8 +505,9 @@
                         </Grid>
                     </Grid>
 
-                    <GridSplitter Grid.Row="3" Height="4" HorizontalAlignment="Stretch" Background="{DynamicResource BorderColor}" 
-                                  Visibility="Collapsed" x:Name="VerticalSplitter2" ShowsPreview="True"/>
+                    <GridSplitter Grid.Row="3" Height="4" HorizontalAlignment="Stretch" VerticalAlignment="Center" 
+                                  ResizeDirection="Rows" ShowsPreview="False" Background="{DynamicResource BorderColor}" 
+                                  Visibility="Collapsed" x:Name="VerticalSplitter2"/>
 
                     <!-- Bottom Panel -->
                     <Grid x:Name="WebViewBottomContainer" Grid.Row="4" Margin="0" PreviewMouseDown="WebViewBottomContainer_PreviewMouseDown">
@@ -515,7 +517,7 @@
                         </Grid.RowDefinitions>
 
                         <!-- Bottom Header -->
-                        <Border x:Name="BottomHeader" Grid.Row="0" Height="24" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" MouseLeftButtonDown="PaneHeader_MouseDown" Tag="Bottom" Cursor="Hand">
+                        <Border x:Name="BottomHeader" Grid.Row="0" Height="24" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" MouseLeftButtonDown="PaneHeader_MouseDown" Tag="Bottom" Cursor="Hand" AllowDrop="True" MouseMove="PaneHeader_MouseMove" DragOver="PaneHeader_DragOver" DragLeave="PaneHeader_DragLeave" Drop="PaneHeader_Drop">
                             <DockPanel Margin="8,0">
                                 <Button x:Name="CloseBottomButton" Content="✕" DockPanel.Dock="Right" Style="{StaticResource HeaderCloseButtonStyle}" Click="CloseBottomPane_Click" ToolTip="この画面を閉じる"/>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

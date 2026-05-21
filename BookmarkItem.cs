@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace MugiSideBrowser
 {
@@ -31,12 +32,14 @@ namespace MugiSideBrowser
             set { if (_faviconUrl != value) { _faviconUrl = value; OnPropertyChanged(); OnPropertyChanged(nameof(DisplayFaviconUrl)); } }
         }
 
+        [JsonIgnore]
         public bool IsLoaded
         {
             get => _isLoaded;
             set { if (_isLoaded != value) { _isLoaded = value; OnPropertyChanged(); } }
         }
 
+        [JsonIgnore]
         public bool IsActive
         {
             get => _isActive;
