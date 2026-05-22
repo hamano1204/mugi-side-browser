@@ -13,7 +13,8 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Foreground" Value="{DynamicResource SecondaryText}"/>
-            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Margin" Value="8,0"/>
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -109,6 +110,79 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="HeaderMenuButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryText}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource HoverBackground}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="HeaderNavButtonStyle" TargetType="Button" BasedOn="{StaticResource HeaderMenuButtonStyle}">
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.3"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <ContextMenu x:Key="PageToolsMenu" Opened="PageToolsMenu_Opened">
+            <MenuItem Header="ページを更新" Click="Reload_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="モバイル表示に切替" Click="UserAgent_Click" Tag="UserAgent">
+                <MenuItem.Icon>
+                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Header="このページをブックマーク" Click="Star_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="URLをコピー" Click="CopyUrl_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="標準ブラウザで開く" Click="OpenExternal_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Header="初期ページに戻る" Click="ResetToInitialPage_Click" Tag="ResetToInitialPage">
+                <MenuItem.Icon>
+                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="画面を閉じる" Click="CloseActivePane_Click" Tag="CloseActivePane">
+                <MenuItem.Icon>
+                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
+                </MenuItem.Icon>
+            </MenuItem>
+        </ContextMenu>
     </Window.Resources>
 
     <Grid x:Name="RootGrid">
@@ -152,6 +226,8 @@
                     
                     <!-- Right: Window Controls -->
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                        <Button x:Name="ToggleNormalAppBarButton" Content="&#xE90D;" Click="ToggleNormalAppBar_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="サイドバー表示 (AppBar)"/>
+                        <Button x:Name="ToggleAppBarAutoHideButton" Content="" Click="ToggleAppBarAutoHide_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="自動的に隠す (AutoHide)"/>
                         <Button x:Name="MinimizeButton" Content="" Click="Minimize_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="最小化"/>
                         <Button Content="" Click="Close_Click" Style="{StaticResource ToolbarButtonStyle}" Foreground="{DynamicResource DangerForeground}" ToolTip="閉じる"/>
                     </StackPanel>
@@ -164,45 +240,8 @@
             <!-- Address Bar & Tools -->
             <Border Grid.Row="1" Background="{DynamicResource AddressBarBackground}" Padding="8,4" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,1">
                 <DockPanel LastChildFill="True">
-                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="0,0,4,0">
-                        <Button Content="" Click="Back_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="戻る"/>
-                        <Button Content="" Click="Forward_Click" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,4,0" ToolTip="進む"/>
-                    </StackPanel>
                     
-                    <Button Content="" Style="{StaticResource ToolbarButtonStyle}" 
-                            Click="PageTools_Click" ToolTip="ページ操作" DockPanel.Dock="Right" Margin="4,0,0,0">
-                        <Button.ContextMenu>
-                            <ContextMenu x:Name="PageToolsMenu">
-                                <MenuItem Header="ページを更新" Click="Reload_Click">
-                                    <MenuItem.Icon>
-                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                                <MenuItem x:Name="UserAgentMenuItem" Header="モバイル表示に切替" Click="UserAgent_Click">
-                                    <MenuItem.Icon>
-                                        <TextBlock x:Name="UserAgentMenuIcon" Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                                <Separator/>
-                                <MenuItem Header="このページをブックマーク" Click="Star_Click">
-                                    <MenuItem.Icon>
-                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                                <MenuItem Header="URLをコピー" Click="CopyUrl_Click">
-                                    <MenuItem.Icon>
-                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                                <MenuItem Header="標準ブラウザで開く" Click="OpenExternal_Click">
-                                    <MenuItem.Icon>
-                                        <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                            </ContextMenu>
-                        </Button.ContextMenu>
-                    </Button>
-                    
+
                     <TextBox x:Name="UrlTextBox" Background="{DynamicResource BorderColor}" Foreground="{DynamicResource PrimaryText}" BorderThickness="1" BorderBrush="{DynamicResource TextBoxBorderColor}"
                               Padding="8,4" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown"
                               FontSize="13" SelectionBrush="{DynamicResource SelectionBackground}">
@@ -222,7 +261,6 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Vertical Sidebar Dock (Left) -->
                 <!-- Vertical Sidebar Dock (Left) -->
                 <Border Grid.Column="0" Width="48" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,1,0">
                     <Grid>
@@ -270,13 +308,12 @@
                                                     </Style>
                                                 </Border.Style>
                                                 <Border.ContextMenu>
-                                                    <ContextMenu>
-                                                        <MenuItem Header="中のウィンドウで開く" Click="OpenInMiddleWindow_Click"/>
-                                                        <MenuItem Header="下のウィンドウで開く" Click="OpenInBottomWindow_Click"/>
+                                                    <ContextMenu Opened="BookmarkContextMenu_Opened">
+                                                        <MenuItem Header="分割画面で開く" Click="OpenInSplitScreen_Click"/>
                                                         <Separator/>
-                                                        <MenuItem Header="このページの状態をクリア (メモリ解放)" Click="ClearBookmarkState_Click"/>
+                                                        <MenuItem Header="タブを終了" Click="ClearBookmarkState_Click"/>
                                                         <Separator/>
-                                                        <MenuItem Header="削除" Click="DeleteBookmark_Click"/>
+                                                        <MenuItem Header="タブを削除" Click="DeleteBookmark_Click"/>
                                                     </ContextMenu>
                                                 </Border.ContextMenu>
                                                 <!-- Favicon Image with Scale Transform on Hover for WOW effect -->
@@ -375,24 +412,10 @@
                                         </MenuItem.Icon>
                                     </MenuItem>
                                     <Separator/>
-                                    <MenuItem x:Name="SplitMenuItem" Header="上下分割を切り替え" Click="SplitView_Click">
-                                        <MenuItem.Icon>
-                                            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                        </MenuItem.Icon>
-                                    </MenuItem>
                                     <MenuItem x:Name="ExternalBrowserMenuItem" Header="新しいウィンドウを標準ブラウザで開く" IsCheckable="True" IsChecked="True" Click="ExternalBrowser_Click">
                                         <MenuItem.Icon>
                                             <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                                         </MenuItem.Icon>
-                                    </MenuItem>
-                                    <Separator/>
-                                    <MenuItem Header="表示モード">
-                                        <MenuItem.Icon>
-                                            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
-                                        </MenuItem.Icon>
-                                        <MenuItem x:Name="AlwaysVisibleMenuItem" Header="常時表示 (AppBar)" Click="DisplayMode_Click" IsChecked="True"/>
-                                        <MenuItem x:Name="AutoHideMenuItem" Header="自動的に隠す (Hot Corner)" Click="DisplayMode_Click"/>
-                                        <MenuItem x:Name="NormalWindowMenuItem" Header="ウィンドウ (自由配置)" Click="DisplayMode_Click"/>
                                     </MenuItem>
                                 </ContextMenu>
                             </Button.ContextMenu>
@@ -420,6 +443,11 @@
                         <!-- Top Header -->
                         <Border x:Name="TopHeader" Grid.Row="0" Height="24" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" MouseLeftButtonDown="PaneHeader_MouseDown" Tag="Top" Cursor="Hand" AllowDrop="True" MouseMove="PaneHeader_MouseMove" DragOver="PaneHeader_DragOver" DragLeave="PaneHeader_DragLeave" Drop="PaneHeader_Drop">
                             <DockPanel Margin="8,0">
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                                    <Button x:Name="TopBackButton" Content="&#xE112;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderBack_Click" Tag="Top" ToolTip="戻る" Margin="0,0,2,0"/>
+                                    <Button x:Name="TopForwardButton" Content="&#xE111;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderForward_Click" Tag="Top" ToolTip="進む" Margin="0,0,4,0"/>
+                                    <Button x:Name="TopMenuButton" Content="&#xE712;" Style="{StaticResource HeaderMenuButtonStyle}" Click="HeaderPageTools_Click" Tag="Top" ToolTip="ページ操作"/>
+                                </StackPanel>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <Ellipse x:Name="TopActiveIndicator" Width="6" Height="6" Fill="{DynamicResource SelectionBackground}" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Visible"/>
                                     <TextBlock x:Name="TopHeaderText" Text="メイン画面" FontSize="11" Foreground="{DynamicResource PrimaryText}" FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -461,7 +489,11 @@
                         <!-- Middle Header -->
                         <Border x:Name="MiddleHeader" Grid.Row="0" Height="24" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" MouseLeftButtonDown="PaneHeader_MouseDown" Tag="Middle" Cursor="Hand" AllowDrop="True" MouseMove="PaneHeader_MouseMove" DragOver="PaneHeader_DragOver" DragLeave="PaneHeader_DragLeave" Drop="PaneHeader_Drop">
                             <DockPanel Margin="8,0">
-                                <Button x:Name="CloseMiddleButton" Content="✕" DockPanel.Dock="Right" Style="{StaticResource HeaderCloseButtonStyle}" Click="CloseMiddlePane_Click" ToolTip="この画面を閉じる"/>
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                                    <Button x:Name="MiddleBackButton" Content="&#xE112;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderBack_Click" Tag="Middle" ToolTip="戻る" Margin="0,0,2,0"/>
+                                    <Button x:Name="MiddleForwardButton" Content="&#xE111;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderForward_Click" Tag="Middle" ToolTip="進む" Margin="0,0,4,0"/>
+                                    <Button x:Name="MiddleMenuButton" Content="&#xE712;" Style="{StaticResource HeaderMenuButtonStyle}" Click="HeaderPageTools_Click" Tag="Middle" ToolTip="ページ操作"/>
+                                </StackPanel>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <Ellipse x:Name="MiddleActiveIndicator" Width="6" Height="6" Fill="{DynamicResource SelectionBackground}" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                                     <TextBlock x:Name="MiddleHeaderText" Text="サブ画面 (中)" FontSize="11" Foreground="{DynamicResource SecondaryText}" FontWeight="Normal" VerticalAlignment="Center"/>
@@ -498,7 +530,7 @@
                                                Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
                                     <TextBlock Text="分割ウィンドウ (中)" FontWeight="SemiBold" FontSize="16" 
                                                Foreground="{DynamicResource PrimaryText}" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,0,0,8"/>
-                                    <TextBlock Text="お気に入りをここに表示できます。&#x0a;サイドバーのお気に入りを右クリックして「中のウィンドウで開く」を選択するか、Ctrlキーを押しながらお気に入りクリックしてください。" 
+                                    <TextBlock Text="お気に入りをここに表示できます。&#x0a;サイドバーのお気に入りを右クリックして「分割画面で開く」を選択してください。" 
                                                FontSize="12" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,0"/>
                                 </StackPanel>
                             </Border>
@@ -519,7 +551,11 @@
                         <!-- Bottom Header -->
                         <Border x:Name="BottomHeader" Grid.Row="0" Height="24" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" MouseLeftButtonDown="PaneHeader_MouseDown" Tag="Bottom" Cursor="Hand" AllowDrop="True" MouseMove="PaneHeader_MouseMove" DragOver="PaneHeader_DragOver" DragLeave="PaneHeader_DragLeave" Drop="PaneHeader_Drop">
                             <DockPanel Margin="8,0">
-                                <Button x:Name="CloseBottomButton" Content="✕" DockPanel.Dock="Right" Style="{StaticResource HeaderCloseButtonStyle}" Click="CloseBottomPane_Click" ToolTip="この画面を閉じる"/>
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                                    <Button x:Name="BottomBackButton" Content="&#xE112;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderBack_Click" Tag="Bottom" ToolTip="戻る" Margin="0,0,2,0"/>
+                                    <Button x:Name="BottomForwardButton" Content="&#xE111;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderForward_Click" Tag="Bottom" ToolTip="進む" Margin="0,0,4,0"/>
+                                    <Button x:Name="BottomMenuButton" Content="&#xE712;" Style="{StaticResource HeaderMenuButtonStyle}" Click="HeaderPageTools_Click" Tag="Bottom" ToolTip="ページ操作"/>
+                                </StackPanel>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <Ellipse x:Name="BottomActiveIndicator" Width="6" Height="6" Fill="{DynamicResource SelectionBackground}" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                                     <TextBlock x:Name="BottomHeaderText" Text="サブ画面 (下)" FontSize="11" Foreground="{DynamicResource SecondaryText}" FontWeight="Normal" VerticalAlignment="Center"/>
@@ -556,7 +592,7 @@
                                                Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
                                     <TextBlock Text="分割ウィンドウ (下)" FontWeight="SemiBold" FontSize="16" 
                                                Foreground="{DynamicResource PrimaryText}" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,0,0,8"/>
-                                    <TextBlock Text="お気に入りをここに表示できます。&#x0a;サイドバーのお気に入りを右クリックして「下のウィンドウで開く」を選択するか、Ctrl+Shiftキーを押しながらお気に入りクリックしてください。" 
+                                    <TextBlock Text="お気に入りをここに表示できます。&#x0a;サイドバーのお気に入りを右クリックして「分割画面で開く」を選択してください。" 
                                                FontSize="12" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,0"/>
                                 </StackPanel>
                             </Border>

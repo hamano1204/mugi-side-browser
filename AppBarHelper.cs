@@ -61,6 +61,7 @@ namespace MugiSideBrowser
         }
 
         private NativeMethods.RECT _currentMonitorRect;
+        private NativeMethods.RECT _currentWorkAreaRect;
         private bool _hasMonitorInfo = false;
 
         public NativeMethods.RECT CurrentMonitorRect
@@ -69,17 +70,35 @@ namespace MugiSideBrowser
             {
                 if (!_hasMonitorInfo)
                 {
-                    var helper = new WindowInteropHelper(_window);
-                    IntPtr hMonitor = NativeMethods.MonitorFromWindow(helper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
-                    var mi = new NativeMethods.MONITORINFO();
-                    mi.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
-                    if (NativeMethods.GetMonitorInfo(hMonitor, ref mi))
-                    {
-                        _currentMonitorRect = mi.rcMonitor;
-                        _hasMonitorInfo = true;
-                    }
+                    QueryMonitorInfo();
                 }
                 return _currentMonitorRect;
+            }
+        }
+
+        public NativeMethods.RECT CurrentWorkAreaRect
+        {
+            get
+            {
+                if (!_hasMonitorInfo)
+                {
+                    QueryMonitorInfo();
+                }
+                return _currentWorkAreaRect;
+            }
+        }
+
+        private void QueryMonitorInfo()
+        {
+            var helper = new WindowInteropHelper(_window);
+            IntPtr hMonitor = NativeMethods.MonitorFromWindow(helper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
+            var mi = new NativeMethods.MONITORINFO();
+            mi.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
+            if (NativeMethods.GetMonitorInfo(hMonitor, ref mi))
+            {
+                _currentMonitorRect = mi.rcMonitor;
+                _currentWorkAreaRect = mi.rcWork;
+                _hasMonitorInfo = true;
             }
         }
 
@@ -93,16 +112,8 @@ namespace MugiSideBrowser
             // まだモニター情報がない場合、または最新の情報を取得したい場合に取得
             if (!_hasMonitorInfo)
             {
-                IntPtr hMonitor = NativeMethods.MonitorFromWindow(helper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
-                var mi = new NativeMethods.MONITORINFO();
-                mi.cbSize = Marshal.SizeOf(typeof(NativeMethods.MONITORINFO));
-                
-                if (NativeMethods.GetMonitorInfo(hMonitor, ref mi))
-                {
-                    _currentMonitorRect = mi.rcMonitor;
-                    _hasMonitorInfo = true;
-                }
-                else
+                QueryMonitorInfo();
+                if (!_hasMonitorInfo)
                 {
                     return;
                 }
@@ -118,19 +129,19 @@ namespace MugiSideBrowser
             // 目標とする幅（ピクセル単位）
             int width = (int)(_window.Width * dpi);
             
-            // 保持しているモニター情報を基準にする
-            data.rc.Top = _currentMonitorRect.Top;
-            data.rc.Bottom = _currentMonitorRect.Bottom;
+            // 保持している作業領域（タスクバー除外）を基準にする
+            data.rc.Top = _currentWorkAreaRect.Top;
+            data.rc.Bottom = _currentWorkAreaRect.Bottom;
 
             if (Edge == NativeMethods.AppBarEdges.Left)
             {
-                data.rc.Left = _currentMonitorRect.Left;
-                data.rc.Right = _currentMonitorRect.Left + width;
+                data.rc.Left = _currentWorkAreaRect.Left;
+                data.rc.Right = _currentWorkAreaRect.Left + width;
             }
             else
             {
-                data.rc.Right = _currentMonitorRect.Right;
-                data.rc.Left = _currentMonitorRect.Right - width;
+                data.rc.Right = _currentWorkAreaRect.Right;
+                data.rc.Left = _currentWorkAreaRect.Right - width;
             }
 
             // 1. 領域の問い合わせ
