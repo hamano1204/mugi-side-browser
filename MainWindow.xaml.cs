@@ -40,6 +40,8 @@ namespace MugiSideBrowser
         private System.Threading.Mutex? _appBarLockMutex;
         private System.Windows.Point _headerDragStartPoint;
         private bool _isHeaderMouseDown = false;
+        // ShowBookmarkWebView の async void 競合防止フラグ
+        private bool _isNavigating = false;
 
         private enum SplitMode
         {
@@ -110,6 +112,10 @@ namespace MugiSideBrowser
             InitializeBookmarksAsync();
             InitializeNotifyIcon();
             UpdateMinimizeButtonState();
+
+            // レイアウトの初期適用
+            bool isRight = SettingsManager.Settings.SidebarPosition == "right";
+            SetSidebarPosition(isRight);
         }
 
         private Microsoft.Web.WebView2.Wpf.WebView2 CreateNewWebView()
@@ -132,6 +138,7 @@ namespace MugiSideBrowser
             {
                 item.IsLoaded = false;
                 item.IsActive = false;
+                item.IsOpen = false;
             }
 
             // お気に入りが空の場合、Googleのお気に入りを作成して追加
@@ -325,7 +332,82 @@ namespace MugiSideBrowser
         {
             if (sender is FrameworkElement element)
             {
+                UpdateThemeMenuItem();
+                UpdateSidebarMenuItem();
                 element.ContextMenu.IsOpen = true;
+            }
+        }
+
+        private void UpdateThemeMenuItem()
+        {
+            if (ThemeToggleMenuItem != null && ThemeIcon != null)
+            {
+                string currentTheme = SettingsManager.Settings.Theme;
+                bool isDark = currentTheme == "dark";
+                ThemeToggleMenuItem.Header = isDark ? "ライトモードに切り替え" : "ダークモードに切り替え";
+                ThemeIcon.Text = isDark ? "" : "";
+            }
+        }
+
+        private void ThemeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            string currentTheme = SettingsManager.Settings.Theme;
+            bool isDark = currentTheme == "dark";
+            bool newIsDark = !isDark;
+
+            SettingsManager.Settings.Theme = newIsDark ? "dark" : "light";
+            SettingsManager.Save();
+            App.ApplyTheme(newIsDark);
+            UpdateThemeMenuItem();
+        }
+
+        private void UpdateSidebarMenuItem()
+        {
+            if (SidebarPositionToggleMenuItem != null && SidebarPositionIcon != null)
+            {
+                bool isRight = SettingsManager.Settings.SidebarPosition == "right";
+                SidebarPositionToggleMenuItem.Header = isRight ? "お気に入りバーを左に配置" : "お気に入りバーを右に配置";
+                SidebarPositionIcon.Text = isRight ? "" : ""; //  (U+E76C: DockLeft),  (U+E76A: DockRight)
+            }
+        }
+
+        private void SidebarPositionToggle_Click(object sender, RoutedEventArgs e)
+        {
+            bool isRight = SettingsManager.Settings.SidebarPosition == "right";
+            bool newIsRight = !isRight;
+
+            SettingsManager.Settings.SidebarPosition = newIsRight ? "right" : "left";
+            SettingsManager.Save();
+            SetSidebarPosition(newIsRight);
+            UpdateSidebarMenuItem();
+        }
+
+        private void SetSidebarPosition(bool isRight)
+        {
+            if (MainContentGrid != null && SidebarColumn != null && BrowserColumn != null && SidebarBorder != null && BrowserGroupGrid != null)
+            {
+                if (isRight)
+                {
+                    // 右側配置
+                    SidebarColumn.Width = new GridLength(1, GridUnitType.Star);
+                    BrowserColumn.Width = GridLength.Auto;
+
+                    Grid.SetColumn(SidebarBorder, 1);
+                    Grid.SetColumn(BrowserGroupGrid, 0);
+
+                    SidebarBorder.BorderThickness = new Thickness(1, 0, 0, 0); // 左側に枠線
+                }
+                else
+                {
+                    // 左側配置
+                    SidebarColumn.Width = GridLength.Auto;
+                    BrowserColumn.Width = new GridLength(1, GridUnitType.Star);
+
+                    Grid.SetColumn(SidebarBorder, 0);
+                    Grid.SetColumn(BrowserGroupGrid, 1);
+
+                    SidebarBorder.BorderThickness = new Thickness(0, 0, 1, 0); // 右側に枠線
+                }
             }
         }
 
@@ -966,8 +1048,8 @@ namespace MugiSideBrowser
 
                 Grid.SetRow(WebViewBottomContainer, 4);
 
-                VerticalSplitter1.Visibility = Visibility.Visible;
-                VerticalSplitter2.Visibility = Visibility.Visible;
+                RowSplitter1.Visibility = Visibility.Visible;
+                RowSplitter2.Visibility = Visibility.Visible;
 
                 WebViewMiddleContainer.Visibility = Visibility.Visible;
                 WebViewBottomContainer.Visibility = Visibility.Visible;
@@ -984,8 +1066,8 @@ namespace MugiSideBrowser
 
                 Grid.SetRow(WebViewBottomContainer, 4);
 
-                VerticalSplitter1.Visibility = Visibility.Visible;
-                VerticalSplitter2.Visibility = Visibility.Collapsed;
+                RowSplitter1.Visibility = Visibility.Visible;
+                RowSplitter2.Visibility = Visibility.Collapsed;
 
                 WebViewMiddleContainer.Visibility = Visibility.Visible;
                 WebViewBottomContainer.Visibility = Visibility.Collapsed;
@@ -1002,8 +1084,8 @@ namespace MugiSideBrowser
 
                 Grid.SetRow(WebViewBottomContainer, 2);
 
-                VerticalSplitter1.Visibility = Visibility.Visible;
-                VerticalSplitter2.Visibility = Visibility.Collapsed;
+                RowSplitter1.Visibility = Visibility.Visible;
+                RowSplitter2.Visibility = Visibility.Collapsed;
 
                 WebViewMiddleContainer.Visibility = Visibility.Collapsed;
                 WebViewBottomContainer.Visibility = Visibility.Visible;
@@ -1020,8 +1102,8 @@ namespace MugiSideBrowser
 
                 Grid.SetRow(WebViewBottomContainer, 4);
 
-                VerticalSplitter1.Visibility = Visibility.Collapsed;
-                VerticalSplitter2.Visibility = Visibility.Collapsed;
+                RowSplitter1.Visibility = Visibility.Collapsed;
+                RowSplitter2.Visibility = Visibility.Collapsed;
 
                 WebViewMiddleContainer.Visibility = Visibility.Collapsed;
                 WebViewBottomContainer.Visibility = Visibility.Collapsed;
@@ -1041,43 +1123,14 @@ namespace MugiSideBrowser
 
         private void UpdateActiveWebViewAfterSplitChange()
         {
-            if (_currentSplitMode == SplitMode.Single)
+            var activeB = GetActiveBookmarkForPane(_activePane);
+            if (activeB != null && _bookmarkWebViews.TryGetValue(activeB, out var activeWv))
             {
-                var visibleWebView = WebViewTopHolder.Children.OfType<Microsoft.Web.WebView2.Wpf.WebView2>()
-                                      .FirstOrDefault(w => w.Visibility == Visibility.Visible);
-                if (visibleWebView != null)
-                {
-                    _activeWebView = visibleWebView;
-                }
-                else if (_activeBookmarkTop != null && _bookmarkWebViews.TryGetValue(_activeBookmarkTop, out var activeWv))
-                {
-                    _activeWebView = activeWv;
-                }
-                else
-                {
-                    _activeWebView = null;
-                }
+                _activeWebView = activeWv;
             }
-            else if (_currentSplitMode == SplitMode.Double)
+            else
             {
-                // もしアクティブが中コンテナなら、非表示になったため上部に切り替える
-                if (_activeWebView != null && WebViewMiddleHolder.Children.Contains(_activeWebView))
-                {
-                    var visibleWebView = WebViewTopHolder.Children.OfType<Microsoft.Web.WebView2.Wpf.WebView2>()
-                                          .FirstOrDefault(w => w.Visibility == Visibility.Visible);
-                    if (visibleWebView != null)
-                    {
-                        _activeWebView = visibleWebView;
-                    }
-                    else if (_activeBookmarkTop != null && _bookmarkWebViews.TryGetValue(_activeBookmarkTop, out var activeWv))
-                    {
-                        _activeWebView = activeWv;
-                    }
-                    else
-                    {
-                        _activeWebView = null;
-                    }
-                }
+                _activeWebView = null;
             }
 
             if (_activeWebView != null && _activeWebView.Source != null)
@@ -1086,41 +1139,25 @@ namespace MugiSideBrowser
             }
             else
             {
-                var activeB = GetActiveBookmarkForPane(_activePane);
                 UrlTextBox.Text = activeB?.Url ?? "";
             }
             UpdateBookmarkActiveState();
         }
 
-        private void ResumeTop_Click(object sender, RoutedEventArgs e)
+        // Resume ボタン / スリーププレースホルダーのクリックを共通ヘルパーで処理
+        private void ResumePane(TargetWindow pane)
         {
-            if (_activeBookmarkTop != null) ShowBookmarkWebView(_activeBookmarkTop, TargetWindow.Top);
+            var bookmark = GetActiveBookmarkForPane(pane);
+            if (bookmark != null) ShowBookmarkWebView(bookmark, pane);
         }
 
-        private void ResumeMiddle_Click(object sender, RoutedEventArgs e)
-        {
-            if (_activeBookmarkMiddle != null) ShowBookmarkWebView(_activeBookmarkMiddle, TargetWindow.Middle);
-        }
+        private void ResumeTop_Click(object sender, RoutedEventArgs e) => ResumePane(TargetWindow.Top);
+        private void ResumeMiddle_Click(object sender, RoutedEventArgs e) => ResumePane(TargetWindow.Middle);
+        private void ResumeBottom_Click(object sender, RoutedEventArgs e) => ResumePane(TargetWindow.Bottom);
 
-        private void ResumeBottom_Click(object sender, RoutedEventArgs e)
-        {
-            if (_activeBookmarkBottom != null) ShowBookmarkWebView(_activeBookmarkBottom, TargetWindow.Bottom);
-        }
-
-        private void TopSleepPlaceholder_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            if (_activeBookmarkTop != null) ShowBookmarkWebView(_activeBookmarkTop, TargetWindow.Top);
-        }
-
-        private void MiddleSleepPlaceholder_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            if (_activeBookmarkMiddle != null) ShowBookmarkWebView(_activeBookmarkMiddle, TargetWindow.Middle);
-        }
-
-        private void BottomSleepPlaceholder_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            if (_activeBookmarkBottom != null) ShowBookmarkWebView(_activeBookmarkBottom, TargetWindow.Bottom);
-        }
+        private void TopSleepPlaceholder_Click(object sender, System.Windows.Input.MouseButtonEventArgs e) => ResumePane(TargetWindow.Top);
+        private void MiddleSleepPlaceholder_Click(object sender, System.Windows.Input.MouseButtonEventArgs e) => ResumePane(TargetWindow.Middle);
+        private void BottomSleepPlaceholder_Click(object sender, System.Windows.Input.MouseButtonEventArgs e) => ResumePane(TargetWindow.Bottom);
 
         // 各ペインのPreviewMouseDownを共通ヘルパーで処理
         private void WebViewContainer_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -1132,7 +1169,8 @@ namespace MugiSideBrowser
         private void WebViewBottomContainer_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
             => ActivatePaneOnMouseDown(TargetWindow.Bottom);
 
-        private void ActivatePaneOnMouseDown(TargetWindow pane)
+        // ActivatePaneOnMouseDown / ActivatePaneByName の共通実装
+        private void SetActivePaneCore(TargetWindow pane)
         {
             _activePane = pane;
             var holder = pane switch
@@ -1144,16 +1182,13 @@ namespace MugiSideBrowser
             _activeWebView = holder.Children.OfType<Microsoft.Web.WebView2.Wpf.WebView2>()
                                    .FirstOrDefault(w => w.Visibility == Visibility.Visible);
             if (_activeWebView != null && _activeWebView.Source != null)
-            {
                 UrlTextBox.Text = _activeWebView.Source.ToString();
-            }
             else
-            {
-                var activeB = GetActiveBookmarkForPane(_activePane);
-                UrlTextBox.Text = activeB?.Url ?? "";
-            }
+                UrlTextBox.Text = GetActiveBookmarkForPane(_activePane)?.Url ?? "";
             UpdateBookmarkActiveState();
         }
+
+        private void ActivatePaneOnMouseDown(TargetWindow pane) => SetActivePaneCore(pane);
 
         private void HeaderBack_Click(object sender, RoutedEventArgs e)
         {
@@ -1484,34 +1519,9 @@ namespace MugiSideBrowser
         {
             if (sender is FrameworkElement element && element.DataContext is BookmarkItem item)
             {
-                if (item.IsSeparator)
-                {
-                    e.Handled = true;
-                    return;
-                }
-
-                if (TryActivatePaneWithBookmark(item))
-                {
-                    e.Handled = true;
-                    return;
-                }
-
-                // マウスの中ボタン（ホイールクリック）で画面分割を自動で増やしながら開く
-                switch (_currentSplitMode)
-                {
-                    case SplitMode.Single:
-                        // 1画面時は2分割（下ペイン）にして開く
-                        OpenBookmarkInBottomWindow(item);
-                        break;
-                    case SplitMode.Double:
-                        // 2画面時は3分割（中ペイン）にして開く
-                        OpenBookmarkInMiddleWindow(item);
-                        break;
-                    case SplitMode.Triple:
-                        // 既に3分割されている場合は、現在アクティブなペインで開く
-                        ShowBookmarkWebView(item, _activePane);
-                        break;
-                }
+                if (item.IsSeparator) { e.Handled = true; return; }
+                // OpenBookmarkInSplitScreen が TryActivatePaneWithBookmark を含む switch ロジックを統括する
+                OpenBookmarkInSplitScreen(item);
             }
             e.Handled = true;
         }
@@ -1578,6 +1588,10 @@ namespace MugiSideBrowser
 
         private async void ShowBookmarkWebView(BookmarkItem item, TargetWindow target)
         {
+            // 再入防止: 新規WebView初期化中（EnsureCoreWebView2Async await 中）は
+            // 二重呼び出しによる競合状態を防ぐためにスキップ
+            if (_isNavigating) return;
+
             Microsoft.Web.WebView2.Wpf.WebView2 targetWebView;
 
             // 1. WebViewの取得または生成
@@ -1587,41 +1601,33 @@ namespace MugiSideBrowser
             }
             else
             {
-                targetWebView = CreateNewWebView();
-                _bookmarkWebViews[item] = targetWebView;
-                item.IsLoaded = true;
+                _isNavigating = true;
+                try
+                {
+                    targetWebView = CreateNewWebView();
+                    _bookmarkWebViews[item] = targetWebView;
+                    item.IsLoaded = true;
 
-                // 先に目的のコンテナに追加する
-                switch (target)
-                {
-                    case TargetWindow.Top:
-                        if (!WebViewTopHolder.Children.Contains(targetWebView))
-                            WebViewTopHolder.Children.Add(targetWebView);
-                        break;
-                    case TargetWindow.Middle:
-                        if (!WebViewMiddleHolder.Children.Contains(targetWebView))
-                            WebViewMiddleHolder.Children.Add(targetWebView);
-                        break;
-                    case TargetWindow.Bottom:
-                        if (!WebViewBottomHolder.Children.Contains(targetWebView))
-                            WebViewBottomHolder.Children.Add(targetWebView);
-                        break;
-                }
+                    // EnsureCoreWebView2Async の await 前にコンテナへ追加する必要がある
+                    var initContainer = GetContainerForPane(target);
+                    if (!initContainer.Children.Contains(targetWebView))
+                        initContainer.Children.Add(targetWebView);
 
-                // 初期化とロード
-                await targetWebView.EnsureCoreWebView2Async();
-                if (_defaultUserAgent == null)
-                {
-                    _defaultUserAgent = targetWebView.CoreWebView2.Settings.UserAgent;
+                    // 初期化とロード（await 中はUIスレッドが解放されるため _isNavigating でガード）
+                    await targetWebView.EnsureCoreWebView2Async();
+                    if (_defaultUserAgent == null)
+                        _defaultUserAgent = targetWebView.CoreWebView2.Settings.UserAgent;
+                    if (_defaultUserAgent != null)
+                        targetWebView.CoreWebView2.Settings.UserAgent = _isMobileMode ? MobileUserAgent : _defaultUserAgent;
+                    targetWebView.CoreWebView2.SourceChanged += CoreWebView2_SourceChanged;
+                    targetWebView.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
+                    targetWebView.CoreWebView2.HistoryChanged += CoreWebView2_HistoryChanged;
+                    targetWebView.Source = new Uri(item.Url);
                 }
-                if (_defaultUserAgent != null)
+                finally
                 {
-                    targetWebView.CoreWebView2.Settings.UserAgent = _isMobileMode ? MobileUserAgent : _defaultUserAgent;
+                    _isNavigating = false;
                 }
-                targetWebView.CoreWebView2.SourceChanged += CoreWebView2_SourceChanged;
-                targetWebView.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
-                targetWebView.CoreWebView2.HistoryChanged += CoreWebView2_HistoryChanged;
-                targetWebView.Source = new Uri(item.Url);
             }
 
             // 2. 引っ越し処理と親の制御
@@ -1629,7 +1635,7 @@ namespace MugiSideBrowser
             if (target != TargetWindow.Top && WebViewTopHolder.Children.Contains(targetWebView))
             {
                 WebViewTopHolder.Children.Remove(targetWebView);
-                ResetToDefaultWebView();
+                ResetToDefaultWebView(item);
             }
             if (target != TargetWindow.Middle && WebViewMiddleHolder.Children.Contains(targetWebView))
             {
@@ -1706,9 +1712,16 @@ namespace MugiSideBrowser
             if (_bookmarkService == null || _bookmarkService.Bookmarks == null) return;
 
             var activeB = GetActiveBookmarkForPane(_activePane);
+            
+            var openBookmarks = new System.Collections.Generic.HashSet<BookmarkItem>();
+            if (_activeBookmarkTop != null) openBookmarks.Add(_activeBookmarkTop);
+            if (_isMiddlePaneOpen && _activeBookmarkMiddle != null) openBookmarks.Add(_activeBookmarkMiddle);
+            if (_isBottomPaneOpen && _activeBookmarkBottom != null) openBookmarks.Add(_activeBookmarkBottom);
+
             foreach (var b in _bookmarkService.Bookmarks)
             {
                 b.IsActive = (b == activeB);
+                b.IsOpen = openBookmarks.Contains(b);
             }
             UpdatePaneHeadersUI();
             UpdateNavigationButtonsState();
@@ -1788,13 +1801,7 @@ namespace MugiSideBrowser
             UpdateBookmarkActiveState();
         }
 
-        private void OpenInMiddleWindow_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is System.Windows.Controls.MenuItem menuItem && menuItem.DataContext is BookmarkItem item)
-            {
-                OpenBookmarkInMiddleWindow(item);
-            }
-        }
+
 
         private void OpenInSplitScreen_Click(object sender, RoutedEventArgs e)
         {
@@ -1908,11 +1915,37 @@ namespace MugiSideBrowser
                     OpenBookmarkInBottomWindow(item);
                     break;
                 case SplitMode.Double:
-                    OpenBookmarkInMiddleWindow(item);
+                    OpenBookmarkInSplitScreenFromDouble(item);
                     break;
                 case SplitMode.Triple:
                     ShowBookmarkWebView(item, _activePane);
                     break;
+            }
+        }
+
+        private void OpenBookmarkInSplitScreenFromDouble(BookmarkItem item)
+        {
+            if (!_isBottomPaneOpen)
+            {
+                OpenBookmarkInBottomWindow(item);
+            }
+            else
+            {
+                // Top and Bottom are open (Middle is closed).
+                // Shift Bottom content to Middle, and open the new one in Bottom.
+                var prevBottom = _activeBookmarkBottom;
+                
+                _isMiddlePaneOpen = true;
+                _isBottomPaneOpen = true;
+                
+                ApplySplitLayout();
+                
+                if (prevBottom != null)
+                {
+                    ShowBookmarkWebView(prevBottom, TargetWindow.Middle);
+                }
+                
+                ShowBookmarkWebView(item, TargetWindow.Bottom);
             }
         }
 
@@ -1923,13 +1956,7 @@ namespace MugiSideBrowser
             ShowBookmarkWebView(item, TargetWindow.Middle);
         }
 
-        private void OpenInBottomWindow_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is System.Windows.Controls.MenuItem menuItem && menuItem.DataContext is BookmarkItem item)
-            {
-                OpenBookmarkInBottomWindow(item);
-            }
-        }
+
 
         private void OpenBookmarkInBottomWindow(BookmarkItem item)
         {
@@ -2075,6 +2102,38 @@ namespace MugiSideBrowser
             _ => throw new ArgumentOutOfRangeException(nameof(pane), pane, null)
         };
 
+        // SwapPanes 内でWebViewとプレースホルダーをペインに配置する共通ヘルパー
+        private void ApplyPaneContent(
+            BookmarkItem? bookmark,
+            Microsoft.Web.WebView2.Wpf.WebView2? wv,
+            TargetWindow pane)
+        {
+            if (bookmark == null) { ResetPaneToDefault(pane); return; }
+
+            var container = GetContainerForPane(pane);
+            var (sleepPlaceholder, sleepTitle, emptyPlaceholder) = pane switch
+            {
+                TargetWindow.Top    => ((Grid)TopSleepPlaceholder,    (System.Windows.Controls.TextBlock)TopSleepTitle,    (Grid?)null),
+                TargetWindow.Middle => (MiddleSleepPlaceholder, MiddleSleepTitle, (Grid?)MiddleEmptyPlaceholder),
+                _                   => (BottomSleepPlaceholder, BottomSleepTitle, (Grid?)BottomEmptyPlaceholder)
+            };
+
+            if (wv != null)
+            {
+                if (!container.Children.Contains(wv)) container.Children.Add(wv);
+                wv.Visibility = Visibility.Visible;
+                sleepPlaceholder.Visibility = Visibility.Collapsed;
+                if (emptyPlaceholder != null) emptyPlaceholder.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                // スリープ中ブックマークを配置する場合はスリープ画面を表示
+                sleepTitle.Text = $"「{bookmark.Title}」はスリープ状態です";
+                sleepPlaceholder.Visibility = Visibility.Visible;
+                if (emptyPlaceholder != null) emptyPlaceholder.Visibility = Visibility.Collapsed;
+            }
+        }
+
         private void SwapPanes(string source, string target)
         {
             TargetWindow sourceWindow = ParseTargetWindow(source);
@@ -2087,173 +2146,36 @@ namespace MugiSideBrowser
             Microsoft.Web.WebView2.Wpf.WebView2? targetWv = targetBookmark != null && _bookmarkWebViews.TryGetValue(targetBookmark, out var tWv) ? tWv : null;
 
             // 1. 親コンテナから取り外す
-            if (sourceWv != null)
-            {
-                RemoveWebViewFromParent(sourceWv, sourceWindow);
-            }
-            if (targetWv != null)
-            {
-                RemoveWebViewFromParent(targetWv, targetWindow);
-            }
+            if (sourceWv != null) RemoveWebViewFromParent(sourceWv, sourceWindow);
+            if (targetWv != null) RemoveWebViewFromParent(targetWv, targetWindow);
 
-            // Bookmarks assignments are updated first to ensure proper exclusion filtering in default reset methods.
+            // ブックマーク参照を先に更新（ResetPaneToDefault の除外フィルターに影響するため）
             SetActiveBookmarkForPane(sourceWindow, targetBookmark);
             SetActiveBookmarkForPane(targetWindow, sourceBookmark);
 
-            // 2. 移動先に配置
-            if (sourceBookmark != null)
-            {
-                var destContainer = GetContainerForPane(targetWindow);
-
-                if (sourceWv != null)
-                {
-                    if (!destContainer.Children.Contains(sourceWv))
-                        destContainer.Children.Add(sourceWv);
-                    sourceWv.Visibility = Visibility.Visible;
-
-                    switch (targetWindow)
-                    {
-                        case TargetWindow.Top:
-                            TopSleepPlaceholder.Visibility = Visibility.Collapsed;
-                            break;
-                        case TargetWindow.Middle:
-                            MiddleSleepPlaceholder.Visibility = Visibility.Collapsed;
-                            MiddleEmptyPlaceholder.Visibility = Visibility.Collapsed;
-                            break;
-                        case TargetWindow.Bottom:
-                            BottomSleepPlaceholder.Visibility = Visibility.Collapsed;
-                            BottomEmptyPlaceholder.Visibility = Visibility.Collapsed;
-                            break;
-                    }
-                }
-                else
-                {
-                    // スリープ中のブックマークを移動する場合、移動先にスリープ画面を表示
-                    switch (targetWindow)
-                    {
-                        case TargetWindow.Top:
-                            TopSleepTitle.Text = $"「{sourceBookmark.Title}」はスリープ状態です";
-                            TopSleepPlaceholder.Visibility = Visibility.Visible;
-                            break;
-                        case TargetWindow.Middle:
-                            MiddleSleepTitle.Text = $"「{sourceBookmark.Title}」はスリープ状態です";
-                            MiddleSleepPlaceholder.Visibility = Visibility.Visible;
-                            MiddleEmptyPlaceholder.Visibility = Visibility.Collapsed;
-                            break;
-                        case TargetWindow.Bottom:
-                            BottomSleepTitle.Text = $"「{sourceBookmark.Title}」はスリープ状態です";
-                            BottomSleepPlaceholder.Visibility = Visibility.Visible;
-                            BottomEmptyPlaceholder.Visibility = Visibility.Collapsed;
-                            break;
-                    }
-                }
-            }
-            else
-            {
-                ResetPaneToDefault(targetWindow);
-            }
-
-            if (targetBookmark != null)
-            {
-                var destContainer = GetContainerForPane(sourceWindow);
-
-                if (targetWv != null)
-                {
-                    if (!destContainer.Children.Contains(targetWv))
-                        destContainer.Children.Add(targetWv);
-                    targetWv.Visibility = Visibility.Visible;
-
-                    switch (sourceWindow)
-                    {
-                        case TargetWindow.Top:
-                            TopSleepPlaceholder.Visibility = Visibility.Collapsed;
-                            break;
-                        case TargetWindow.Middle:
-                            MiddleSleepPlaceholder.Visibility = Visibility.Collapsed;
-                            MiddleEmptyPlaceholder.Visibility = Visibility.Collapsed;
-                            break;
-                        case TargetWindow.Bottom:
-                            BottomSleepPlaceholder.Visibility = Visibility.Collapsed;
-                            BottomEmptyPlaceholder.Visibility = Visibility.Collapsed;
-                            break;
-                    }
-                }
-                else
-                {
-                    // スリープ中のブックマークを移動する場合、移動先にスリープ画面を表示
-                    switch (sourceWindow)
-                    {
-                        case TargetWindow.Top:
-                            TopSleepTitle.Text = $"「{targetBookmark.Title}」はスリープ状態です";
-                            TopSleepPlaceholder.Visibility = Visibility.Visible;
-                            break;
-                        case TargetWindow.Middle:
-                            MiddleSleepTitle.Text = $"「{targetBookmark.Title}」はスリープ状態です";
-                            MiddleSleepPlaceholder.Visibility = Visibility.Visible;
-                            MiddleEmptyPlaceholder.Visibility = Visibility.Collapsed;
-                            break;
-                        case TargetWindow.Bottom:
-                            BottomSleepTitle.Text = $"「{targetBookmark.Title}」はスリープ状態です";
-                            BottomSleepPlaceholder.Visibility = Visibility.Visible;
-                            BottomEmptyPlaceholder.Visibility = Visibility.Collapsed;
-                            break;
-                    }
-                }
-            }
-            else
-            {
-                ResetPaneToDefault(sourceWindow);
-            }
+            // 2. ヘルパーで移動先に配置
+            ApplyPaneContent(sourceBookmark, sourceWv, targetWindow);
+            ApplyPaneContent(targetBookmark, targetWv, sourceWindow);
 
             // 3. アクティブWebViewの更新
             if (_activePane == sourceWindow)
-            {
                 _activeWebView = targetWv;
-            }
             else if (_activePane == targetWindow)
-            {
                 _activeWebView = sourceWv;
-            }
 
             UpdateActiveWebViewAfterSplitChange();
         }
 
         private void ActivatePaneByName(string tag)
         {
-            switch (tag)
+            // 文字列タグからペインを解決し SetActivePaneCore で共通処理を実行
+            TargetWindow pane = tag switch
             {
-                case "Top":
-                    _activePane = TargetWindow.Top;
-                    break;
-                case "Middle":
-                    if (_isMiddlePaneOpen) _activePane = TargetWindow.Middle;
-                    break;
-                case "Bottom":
-                    if (_isBottomPaneOpen) _activePane = TargetWindow.Bottom;
-                    break;
-            }
-
-            // アクティブペイン内の表示中WebViewを_activeWebViewに設定
-            var visibleWv = _activePane switch
-            {
-                TargetWindow.Top => WebViewTopHolder.Children.OfType<Microsoft.Web.WebView2.Wpf.WebView2>().FirstOrDefault(w => w.Visibility == Visibility.Visible),
-                TargetWindow.Middle => WebViewMiddleHolder.Children.OfType<Microsoft.Web.WebView2.Wpf.WebView2>().FirstOrDefault(w => w.Visibility == Visibility.Visible),
-                TargetWindow.Bottom => WebViewBottomHolder.Children.OfType<Microsoft.Web.WebView2.Wpf.WebView2>().FirstOrDefault(w => w.Visibility == Visibility.Visible),
-                _ => null
+                "Middle" when _isMiddlePaneOpen => TargetWindow.Middle,
+                "Bottom" when _isBottomPaneOpen => TargetWindow.Bottom,
+                _ => TargetWindow.Top
             };
-
-            _activeWebView = visibleWv;
-            if (_activeWebView != null && _activeWebView.Source != null)
-            {
-                UrlTextBox.Text = _activeWebView.Source.ToString();
-            }
-            else
-            {
-                var activeB = GetActiveBookmarkForPane(_activePane);
-                UrlTextBox.Text = activeB?.Url ?? "";
-            }
-
-            UpdateBookmarkActiveState();
+            SetActivePaneCore(pane);
         }
 
         private void PaneHeader_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -2297,7 +2219,10 @@ namespace MugiSideBrowser
         {
             _isMiddlePaneOpen = false;
             _activeBookmarkMiddle = null;
-            WebViewMiddleHolder.Children.Clear(); // WebViewをコンテナからクリアして解放
+            // Children.Clear() はビジュアルツリーから取り外すだけで、
+            // _bookmarkWebViews キャッシュは維持される（再度開く際の高速化のため）。
+            // 完全解放が必要な場合は DisposeBookmarkWebView() を使用すること。
+            WebViewMiddleHolder.Children.Clear();
             ApplySplitLayout();
             if (_activePane == TargetWindow.Middle)
             {
@@ -2316,7 +2241,10 @@ namespace MugiSideBrowser
         {
             _isBottomPaneOpen = false;
             _activeBookmarkBottom = null;
-            WebViewBottomHolder.Children.Clear(); // WebViewをコンテナからクリアして解放
+            // Children.Clear() はビジュアルツリーから取り外すだけで、
+            // _bookmarkWebViews キャッシュは維持される（再度開く際の高速化のため）。
+            // 完全解放が必要な場合は DisposeBookmarkWebView() を使用すること。
+            WebViewBottomHolder.Children.Clear();
             ApplySplitLayout();
             if (_activePane == TargetWindow.Bottom)
             {
@@ -2446,7 +2374,7 @@ namespace MugiSideBrowser
                 {
                     _activeBookmarkTop = null;
                     TopSleepPlaceholder.Visibility = Visibility.Collapsed;
-                    ResetToDefaultWebView();
+                    ResetToDefaultWebView(item);
                 }
                 if (_activeBookmarkMiddle == item)
                 {
@@ -2549,24 +2477,22 @@ namespace MugiSideBrowser
             UpdateBookmarkActiveState();
         }
 
-        private void ResetToDefaultWebView()
+        private void ResetToDefaultWebView(BookmarkItem? excludeItem = null)
         {
-            var candidate = _bookmarkService.Bookmarks.FirstOrDefault(b => !b.IsSeparator && b != _activeBookmarkMiddle && b != _activeBookmarkBottom);
+            // Middle / Bottom に表示中のブックマーク、および除外対象を除いた候補を検索
+            var candidate = _bookmarkService.Bookmarks.FirstOrDefault(
+                b => !b.IsSeparator && b != _activeBookmarkMiddle && b != _activeBookmarkBottom && b != excludeItem);
             if (candidate != null)
             {
                 ShowBookmarkWebView(candidate, TargetWindow.Top);
             }
             else
             {
+                // 他ペインとの重複を許容しない: Middle/Bottom 除外を維持したまま最初の候補を選択
+                // （他ペインが占有していて候補が存在しない場合は Top を空にする）
                 _activeBookmarkTop = null;
                 if (_activePane == TargetWindow.Top) _activeWebView = null;
                 TopSleepPlaceholder.Visibility = Visibility.Collapsed;
-                // 万が一お気に入りが他にない場合は、最初の項目を上部で開く
-                var first = _bookmarkService.Bookmarks.FirstOrDefault(b => !b.IsSeparator);
-                if (first != null)
-                {
-                    ShowBookmarkWebView(first, TargetWindow.Top);
-                }
             }
             UpdateBookmarkActiveState();
         }
@@ -2625,11 +2551,34 @@ namespace MugiSideBrowser
                 };
                 contextMenu.Items.Add(exitItem);
 
-                string exePath = System.Reflection.Assembly.GetEntryAssembly()?.Location ?? "";
                 System.Drawing.Icon? appIcon = null;
-                if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
+                try
                 {
-                    try { appIcon = System.Drawing.Icon.ExtractAssociatedIcon(exePath); } catch { }
+                    var iconUri = new Uri("pack://application:,,,/app_icon.png");
+                    var iconStreamInfo = System.Windows.Application.GetResourceStream(iconUri);
+                    if (iconStreamInfo != null)
+                    {
+                        using (var stream = iconStreamInfo.Stream)
+                        using (var bitmap = new System.Drawing.Bitmap(stream))
+                        {
+                            IntPtr hIcon = bitmap.GetHicon();
+                            appIcon = System.Drawing.Icon.FromHandle(hIcon);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to load tray icon from png: {ex.Message}");
+                }
+
+                // フォールバック処理
+                if (appIcon == null)
+                {
+                    string exePath = System.Reflection.Assembly.GetEntryAssembly()?.Location ?? "";
+                    if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
+                    {
+                        try { appIcon = System.Drawing.Icon.ExtractAssociatedIcon(exePath); } catch { }
+                    }
                 }
 
                 _notifyIcon = new System.Windows.Forms.NotifyIcon

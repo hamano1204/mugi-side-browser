@@ -12,6 +12,7 @@ namespace MugiSideBrowser
         private string _faviconUrl = string.Empty;
         private bool _isLoaded = false;
         private bool _isActive = false;
+        private bool _isOpen = false;
         private bool _isSeparator = false;
 
         public string Title
@@ -45,6 +46,14 @@ namespace MugiSideBrowser
             get => _isActive;
             set { if (_isActive != value) { _isActive = value; OnPropertyChanged(); } }
         }
+
+        [JsonIgnore]
+        public bool IsOpen
+        {
+            get => _isOpen;
+            set { if (_isOpen != value) { _isOpen = value; OnPropertyChanged(); } }
+        }
+
 
         public bool IsSeparator
         {

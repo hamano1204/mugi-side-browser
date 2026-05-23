@@ -9,6 +9,7 @@
     <!-- 枠線カラー -->
     <SolidColorBrush x:Key="BorderColor" Color="#333333"/>
     <SolidColorBrush x:Key="TextBoxBorderColor" Color="#444444"/>
+    <SolidColorBrush x:Key="BookmarkSeparator" Color="#666666"/>
     
     <!-- テキストカラー -->
     <SolidColorBrush x:Key="PrimaryText" Color="White"/>

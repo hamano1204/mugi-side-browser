@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Windows;
 
@@ -29,11 +30,33 @@ namespace MugiSideBrowser
                 return;
             }
 
+            // 保存されたテーマを適用
+            string savedTheme = SettingsManager.Settings.Theme;
+            ApplyTheme(savedTheme == "dark");
+
             base.OnStartup(e);
 
             // StartupUri を削除したため、ここで MainWindow を生成して表示する
             var mainWindow = new MainWindow();
             mainWindow.Show();
+        }
+
+        public static void ApplyTheme(bool isDark)
+        {
+            var dicts = System.Windows.Application.Current.Resources.MergedDictionaries;
+            var existingTheme = dicts.FirstOrDefault(d => d.Source != null && 
+                (d.Source.OriginalString.Contains("DarkTheme.xaml") || d.Source.OriginalString.Contains("LightTheme.xaml")));
+            
+            if (existingTheme != null)
+            {
+                dicts.Remove(existingTheme);
+            }
+            
+            var newTheme = new ResourceDictionary
+            {
+                Source = new Uri(isDark ? "Themes/DarkTheme.xaml" : "Themes/LightTheme.xaml", UriKind.Relative)
+            };
+            dicts.Add(newTheme);
         }
 
         protected override void OnExit(ExitEventArgs e)

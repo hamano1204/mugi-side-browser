@@ -1,0 +1,23 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ベースカラー -->
+    <SolidColorBrush x:Key="AppBackground" Color="#F3F3F3"/>
+    <SolidColorBrush x:Key="TitleBarBackground" Color="#E5E5E5"/>
+    <SolidColorBrush x:Key="AddressBarBackground" Color="#FFFFFF"/>
+    
+    <!-- 枠線カラー -->
+    <SolidColorBrush x:Key="BorderColor" Color="#CCCCCC"/>
+    <SolidColorBrush x:Key="TextBoxBorderColor" Color="#BBBBBB"/>
+    <SolidColorBrush x:Key="BookmarkSeparator" Color="#9E9E9E"/>
+    
+    <!-- テキストカラー -->
+    <SolidColorBrush x:Key="PrimaryText" Color="#202020"/>
+    <SolidColorBrush x:Key="SecondaryText" Color="#5F5F5F"/>
+    
+    <!-- インタラクティブ要素カラー -->
+    <SolidColorBrush x:Key="HoverBackground" Color="#E1E1E1"/>
+    <SolidColorBrush x:Key="SelectionBackground" Color="#0078D4"/>
+    <SolidColorBrush x:Key="DangerForeground" Color="#E81123"/>
+
+</ResourceDictionary>
