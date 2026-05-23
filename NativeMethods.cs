@@ -61,9 +61,6 @@ namespace MugiSideBrowser
         public static extern uint RegisterWindowMessage(string lpString);
 
         [DllImport("user32.dll")]
-        public static extern int GetSystemMetrics(int nIndex);
-
-        [DllImport("user32.dll")]
         public static extern bool SetForegroundWindow(IntPtr hWnd);
 
         [DllImport("user32.dll")]
@@ -86,9 +83,6 @@ namespace MugiSideBrowser
 
         public const uint MONITOR_DEFAULTTONEAREST = 2;
 
-        public const int SM_CXSCREEN = 0;
-        public const int SM_CYSCREEN = 1;
-
         [DllImport("user32.dll")]
         public static extern bool GetCursorPos(ref System.Drawing.Point lpPoint);
 
@@ -99,9 +93,17 @@ namespace MugiSideBrowser
         public static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll")]
-        public static extern bool ReleaseCapture();
+        public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        public const int GWL_EXSTYLE = -20;
+        public const int WS_EX_TOOLWINDOW = 0x00000080;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
         [DllImport("user32.dll")]
-        public static extern short GetAsyncKeyState(int vKey);
+        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        public static readonly IntPtr HWND_BROADCAST = (IntPtr)0xffff;
     }
 }
