@@ -34,6 +34,9 @@ namespace MugiSideBrowser
             string savedTheme = SettingsManager.Settings.Theme;
             ApplyTheme(savedTheme == "dark");
 
+            // 言語リソースを適用
+            ApplyLanguage();
+
             base.OnStartup(e);
 
             // StartupUri を削除したため、ここで MainWindow を生成して表示する
@@ -59,6 +62,27 @@ namespace MugiSideBrowser
             dicts.Add(newTheme);
         }
 
+        public static void ApplyLanguage()
+        {
+            var culture = System.Globalization.CultureInfo.CurrentUICulture;
+            bool isJapanese = culture.Name.StartsWith("ja", StringComparison.OrdinalIgnoreCase);
+            
+            var dicts = System.Windows.Application.Current.Resources.MergedDictionaries;
+            var existingLang = dicts.FirstOrDefault(d => d.Source != null && 
+                (d.Source.OriginalString.Contains("StringResources.xaml") || d.Source.OriginalString.Contains("StringResources.ja.xaml")));
+            
+            if (existingLang != null)
+            {
+                dicts.Remove(existingLang);
+            }
+            
+            var newLang = new ResourceDictionary
+            {
+                Source = new Uri(isJapanese ? "Themes/StringResources.ja.xaml" : "Themes/StringResources.xaml", UriKind.Relative)
+            };
+            dicts.Add(newLang);
+        }
+
         protected override void OnExit(ExitEventArgs e)
         {
             if (_mutex != null)
@@ -75,7 +99,11 @@ namespace MugiSideBrowser
 
         private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
         {
-            System.Windows.MessageBox.Show($"致命的なエラーが発生しました:\n\n{e.Exception.Message}\n\n{e.Exception.StackTrace}", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+            string errorMsgFormat = System.Windows.Application.Current.TryFindResource("Msg_FatalError") as string 
+                ?? "致命的なエラーが発生しました:\n\n{0}\n\n{1}";
+            string errorTitle = System.Windows.Application.Current.TryFindResource("Msg_ErrorTitle") as string 
+                ?? "エラー";
+            System.Windows.MessageBox.Show(string.Format(errorMsgFormat, e.Exception.Message, e.Exception.StackTrace), errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
             e.Handled = true;
             System.Windows.Application.Current.Shutdown();
         }

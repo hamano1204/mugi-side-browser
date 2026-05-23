@@ -37,7 +37,7 @@ namespace MugiSideBrowser
         private bool _useExternalBrowserOnCtrlClick = true;
         private const string MobileUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1";
         private double _resizeStartHeight;
-        private System.Threading.Mutex? _appBarLockMutex;
+
         private System.Windows.Point _headerDragStartPoint;
         private bool _isHeaderMouseDown = false;
         // ShowBookmarkWebView の async void 競合防止フラグ
@@ -161,69 +161,40 @@ namespace MugiSideBrowser
             }
         }
 
+        private string GetText(string key, string defaultValue = "")
+        {
+            if (System.Windows.Application.Current.TryFindResource(key) is string text)
+            {
+                return text;
+            }
+            return defaultValue;
+        }
+
         private void UpdateWindowTitle()
         {
             string modeName = _currentMode switch
             {
-                DisplayMode.AppBar => "常時表示",
-                DisplayMode.AutoHide => "自動隠し",
-                DisplayMode.Normal => "自由配置",
-                _ => "不明"
+                DisplayMode.AppBar => GetText("Mode_AppBar", "常時表示"),
+                DisplayMode.AutoHide => GetText("Mode_AutoHide", "自動隠し"),
+                DisplayMode.Normal => GetText("Mode_Floating", "自由配置"),
+                _ => GetText("Mode_Unknown", "不明")
             };
 
             this.Title = $"MugiSideBrowser [{modeName}]";
         }
 
-        private bool TryAcquireAppBarLock()
-        {
-            if (_appBarLockMutex != null) return true;
-
-            try
-            {
-                bool createdNew;
-                var mutex = new System.Threading.Mutex(false, "Global\\MugiSideBrowser_AppBarGlobalLock", out createdNew);
-                if (mutex.WaitOne(0))
-                {
-                    _appBarLockMutex = mutex;
-                    return true;
-                }
-                mutex.Dispose();
-            }
-            catch { }
-            return false;
-        }
-
-        private void ReleaseAppBarLock()
-        {
-            if (_appBarLockMutex != null)
-            {
-                try { _appBarLockMutex.ReleaseMutex(); } catch { }
-                _appBarLockMutex.Dispose();
-                _appBarLockMutex = null;
-            }
-        }
-
         private void AutoAllocatePosition()
         {
-            // AppBar の利用権（鍵）の取得を試みる
-            if (TryAcquireAppBarLock())
-            {
-                _appBarHelper.ResetMonitorInfo();
-                // 1番目のインスタンス：メインモニターの右端へ
-                _currentMode = DisplayMode.AppBar;
-                _appBarHelper.Edge = NativeMethods.AppBarEdges.Right;
-                
-                this.ShowInTaskbar = false;
+            // 多重起動防止により常に1つのみ起動するため、常にAppBarモードで起動する
+            _appBarHelper.ResetMonitorInfo();
+            _currentMode = DisplayMode.AppBar;
+            _appBarHelper.Edge = NativeMethods.AppBarEdges.Right;
 
-                _appBarHelper.Register();
-                UpdateWindowTitle();
-                UpdateMinimizeButtonState();
-            }
-            else
-            {
-                // 2番目以降：通常ウィンドウとして起動
-                SetToNormalMode();
-            }
+            this.ShowInTaskbar = false;
+
+            _appBarHelper.Register();
+            UpdateWindowTitle();
+            UpdateMinimizeButtonState();
         }
 
         private void ApplyToolWindowStyle(bool enable)
@@ -247,9 +218,8 @@ namespace MugiSideBrowser
         private void SetToNormalMode()
         {
             _currentMode = DisplayMode.Normal;
-            
+
             _appBarHelper.Unregister();
-            ReleaseAppBarLock();
             StopAutoHideTimer();
             
             this.Topmost = false;
@@ -344,7 +314,7 @@ namespace MugiSideBrowser
             {
                 string currentTheme = SettingsManager.Settings.Theme;
                 bool isDark = currentTheme == "dark";
-                ThemeToggleMenuItem.Header = isDark ? "ライトモードに切り替え" : "ダークモードに切り替え";
+                ThemeToggleMenuItem.Header = GetText(isDark ? "Menu_SwitchToLightMode" : "Menu_SwitchToDarkMode");
                 ThemeIcon.Text = isDark ? "" : "";
             }
         }
@@ -366,7 +336,7 @@ namespace MugiSideBrowser
             if (SidebarPositionToggleMenuItem != null && SidebarPositionIcon != null)
             {
                 bool isRight = SettingsManager.Settings.SidebarPosition == "right";
-                SidebarPositionToggleMenuItem.Header = isRight ? "お気に入りバーを左に配置" : "お気に入りバーを右に配置";
+                SidebarPositionToggleMenuItem.Header = GetText(isRight ? "Menu_MoveFavoritesLeft" : "Menu_MoveFavoritesRight");
                 SidebarPositionIcon.Text = isRight ? "" : ""; //  (U+E76C: DockLeft),  (U+E76A: DockRight)
             }
         }
@@ -953,7 +923,6 @@ namespace MugiSideBrowser
                 _notifyIcon.Dispose();
             }
             _appBarHelper.Unregister();
-            ReleaseAppBarLock();
 
             // すべてのBookmark用WebView2インスタンスを破棄する
             foreach (var wv in _bookmarkWebViews.Values)
@@ -1279,13 +1248,6 @@ namespace MugiSideBrowser
 
             if (mode == DisplayMode.AppBar)
             {
-                if (!TryAcquireAppBarLock())
-                {
-                    // 鍵が取れなければ切り替えを阻止
-                    UpdateWindowControlsState();
-                    return;
-                }
-
                 _currentMode = DisplayMode.AppBar;
                 this.ShowInTaskbar = false;
                 ApplyToolWindowStyle(true);
@@ -1316,12 +1278,6 @@ namespace MugiSideBrowser
             }
             else if (mode == DisplayMode.AutoHide)
             {
-                if (!TryAcquireAppBarLock())
-                {
-                    UpdateWindowControlsState();
-                    return;
-                }
-
                 _currentMode = DisplayMode.AutoHide;
                 _appBarHelper.Unregister();
                 this.Topmost = true;
@@ -1357,7 +1313,7 @@ namespace MugiSideBrowser
                 {
                     ToggleNormalAppBarButton.Visibility = Visibility.Visible;
                     ToggleNormalAppBarButton.Content = "\uE90D"; // DockRight
-                    ToggleNormalAppBarButton.ToolTip = "サイドバー表示 (AppBar)";
+                    ToggleNormalAppBarButton.ToolTip = GetText("Tooltip_SidebarDisplay", "サイドバー表示 (AppBar)");
                 }
             }
             else
@@ -1373,19 +1329,20 @@ namespace MugiSideBrowser
                     if (_currentMode == DisplayMode.AppBar)
                     {
                         ToggleAppBarAutoHideButton.Content = ""; // Unpin (E77A)
-                        ToggleAppBarAutoHideButton.ToolTip = "自動的に隠す (AutoHide)";
+                        ToggleAppBarAutoHideButton.ToolTip = GetText("Tooltip_AutoHide", "自動的に隠す (AutoHide)");
                     }
                     else // AutoHide
                     {
                         ToggleAppBarAutoHideButton.Content = ""; // Pin (E718)
-                        ToggleAppBarAutoHideButton.ToolTip = "常時表示 (AppBar)";
+                        ToggleAppBarAutoHideButton.ToolTip = GetText("Tooltip_AlwaysShow", "常時表示 (AppBar)");
                     }
                 }
                 if (ToggleNormalAppBarButton != null)
                 {
                     ToggleNormalAppBarButton.Visibility = Visibility.Visible;
-                    ToggleNormalAppBarButton.Content = ""; // Window/ChromeRestore (E827)
-                    ToggleNormalAppBarButton.ToolTip = "自由配置ウィンドウ";
+                    // ToggleNormalAppBarButton.Content = ""; // Window/ChromeRestore (E827)
+                    ToggleNormalAppBarButton.Content = "\uE90D"; // DockRight
+                    ToggleNormalAppBarButton.ToolTip = GetText("Tooltip_FloatingWindow", "自由配置ウィンドウ");
                 }
             }
         }
@@ -1428,7 +1385,7 @@ namespace MugiSideBrowser
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"ブックマークの追加に失敗しました: {ex.Message}", "エラー");
+                System.Windows.MessageBox.Show(string.Format(GetText("Msg_AddBookmarkFailed", "ブックマークの追加に失敗しました: {0}"), ex.Message), GetText("Msg_ErrorTitle", "エラー"));
             }
         }
 
@@ -1442,7 +1399,7 @@ namespace MugiSideBrowser
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.MessageBox.Show($"コピーに失敗しました: {ex.Message}", "エラー");
+                    System.Windows.MessageBox.Show(string.Format(GetText("Msg_CopyFailed", "コピーに失敗しました: {0}"), ex.Message), GetText("Msg_ErrorTitle", "エラー"));
                 }
             }
             else
@@ -1456,7 +1413,7 @@ namespace MugiSideBrowser
                     }
                     catch (Exception ex)
                     {
-                        System.Windows.MessageBox.Show($"コピーに失敗しました: {ex.Message}", "エラー");
+                        System.Windows.MessageBox.Show(string.Format(GetText("Msg_CopyFailed", "コピーに失敗しました: {0}"), ex.Message), GetText("Msg_ErrorTitle", "エラー"));
                     }
                 }
             }
@@ -1482,7 +1439,7 @@ namespace MugiSideBrowser
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.MessageBox.Show($"標準ブラウザで開けませんでした: {ex.Message}", "エラー");
+                    System.Windows.MessageBox.Show(string.Format(GetText("Msg_OpenExternalFailed", "標準ブラウザで開けませんでした: {0}"), ex.Message), GetText("Msg_ErrorTitle", "エラー"));
                 }
             }
         }
@@ -1579,7 +1536,7 @@ namespace MugiSideBrowser
                     }
                     catch (Exception ex)
                     {
-                        System.Windows.MessageBox.Show($"ブックマークの移動に失敗しました: {ex.Message}", "エラー");
+                        System.Windows.MessageBox.Show(string.Format(GetText("Msg_MoveBookmarkFailed", "ブックマークの移動に失敗しました: {0}"), ex.Message), GetText("Msg_ErrorTitle", "エラー"));
                     }
                 }
             }
@@ -1773,7 +1730,7 @@ namespace MugiSideBrowser
             TopHeaderText.Foreground = isTopActive ? activeText : inactiveText;
             TopHeaderText.FontWeight = isTopActive ? FontWeights.SemiBold : FontWeights.Normal;
             TopHeader.Background = isTopActive ? activeBg : inactiveBg;
-            TopHeaderText.Text = string.IsNullOrEmpty(_activeBookmarkTop?.Title) ? "メイン画面" : _activeBookmarkTop.Title;
+            TopHeaderText.Text = string.IsNullOrEmpty(_activeBookmarkTop?.Title) ? GetText("Title_MainPane", "メイン画面") : _activeBookmarkTop.Title;
 
             // 中ペインの更新
             bool isMiddleActive = (_activePane == TargetWindow.Middle);
@@ -1781,7 +1738,7 @@ namespace MugiSideBrowser
             MiddleHeaderText.Foreground = isMiddleActive ? activeText : inactiveText;
             MiddleHeaderText.FontWeight = isMiddleActive ? FontWeights.SemiBold : FontWeights.Normal;
             MiddleHeader.Background = isMiddleActive ? activeBg : inactiveBg;
-            MiddleHeaderText.Text = string.IsNullOrEmpty(_activeBookmarkMiddle?.Title) ? "サブ画面 (中)" : _activeBookmarkMiddle.Title;
+            MiddleHeaderText.Text = string.IsNullOrEmpty(_activeBookmarkMiddle?.Title) ? GetText("Title_SubPaneMiddle", "サブ画面 (中)") : _activeBookmarkMiddle.Title;
 
             // 下ペインの更新
             bool isBottomActive = (_activePane == TargetWindow.Bottom);
@@ -1789,7 +1746,7 @@ namespace MugiSideBrowser
             BottomHeaderText.Foreground = isBottomActive ? activeText : inactiveText;
             BottomHeaderText.FontWeight = isBottomActive ? FontWeights.SemiBold : FontWeights.Normal;
             BottomHeader.Background = isBottomActive ? activeBg : inactiveBg;
-            BottomHeaderText.Text = string.IsNullOrEmpty(_activeBookmarkBottom?.Title) ? "サブ画面 (下)" : _activeBookmarkBottom.Title;
+            BottomHeaderText.Text = string.IsNullOrEmpty(_activeBookmarkBottom?.Title) ? GetText("Title_SubPaneBottom", "サブ画面 (下)") : _activeBookmarkBottom.Title;
         }
 
         private void ResetToDefaultBottomWebView()
@@ -1823,11 +1780,12 @@ namespace MugiSideBrowser
                 {
                     if (mItem is System.Windows.Controls.MenuItem menuItem)
                     {
-                        if (menuItem.Header?.ToString() == "分割画面で開く")
+                        string? tagVal = menuItem.Tag?.ToString();
+                        if (tagVal == "OpenInSplitScreen")
                         {
                             menuItem.IsEnabled = (_currentSplitMode != SplitMode.Triple) && !isOpen;
                         }
-                        else if (menuItem.Header?.ToString() == "タブを終了")
+                        else if (tagVal == "ClearBookmarkState")
                         {
                             menuItem.IsEnabled = item.IsLoaded;
                         }
@@ -1853,7 +1811,7 @@ namespace MugiSideBrowser
                 System.Windows.Controls.MenuItem? uaItem = menu.Items.OfType<System.Windows.Controls.MenuItem>().FirstOrDefault(item => item.Tag?.ToString() == "UserAgent");
                 if (uaItem != null)
                 {
-                    uaItem.Header = _isMobileMode ? "デスクトップ表示に切替" : "モバイル表示に切替";
+                    uaItem.Header = _isMobileMode ? GetText("Menu_SwitchToDesktop", "デスクトップ表示に切替") : GetText("Menu_SwitchToMobile", "モバイル表示に切替");
                     if (uaItem.Icon is TextBlock iconText)
                     {
                         iconText.Text = _isMobileMode ? "" : "";
@@ -2128,7 +2086,8 @@ namespace MugiSideBrowser
             else
             {
                 // スリープ中ブックマークを配置する場合はスリープ画面を表示
-                sleepTitle.Text = $"「{bookmark.Title}」はスリープ状態です";
+                string sleepFormat = GetText("Sleep_TitleFormat", "「{0}」はスリープ状態です");
+                sleepTitle.Text = string.Format(sleepFormat, bookmark.Title);
                 sleepPlaceholder.Visibility = Visibility.Visible;
                 if (emptyPlaceholder != null) emptyPlaceholder.Visibility = Visibility.Collapsed;
             }
@@ -2352,8 +2311,8 @@ namespace MugiSideBrowser
             if (sender is System.Windows.Controls.MenuItem menuItem && menuItem.DataContext is BookmarkItem item)
             {
                 var result = System.Windows.MessageBox.Show(
-                    $"「{item.Title}」を削除しますか？",
-                    "削除の確認",
+                    string.Format(GetText("Msg_ConfirmDelete", "「{0}」を削除しますか？"), item.Title),
+                    GetText("Msg_ConfirmDeleteTitle", "削除の確認"),
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning);
 
@@ -2366,7 +2325,7 @@ namespace MugiSideBrowser
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.MessageBox.Show($"ブックマークの削除に失敗しました: {ex.Message}", "エラー");
+                    System.Windows.MessageBox.Show(string.Format(GetText("Msg_DeleteBookmarkFailed", "ブックマークの削除に失敗しました: {0}"), ex.Message), GetText("Msg_ErrorTitle", "エラー"));
                 }
 
                 // 削除対象のブックマークがアクティブな場合は参照をクリアし適切なプレースホルダー表示に戻す
@@ -2453,22 +2412,23 @@ namespace MugiSideBrowser
             item.IsLoaded = false;
             
             // もし破棄するブックマークがアクティブだったら対応するペインにスリープ画面を表示
+            string sleepFormat = GetText("Sleep_TitleFormat", "「{0}」はスリープ状態です");
             if (_activeBookmarkTop == item)
             {
-                TopSleepTitle.Text = $"「{item.Title}」はスリープ状態です";
+                TopSleepTitle.Text = string.Format(sleepFormat, item.Title);
                 TopSleepPlaceholder.Visibility = Visibility.Visible;
                 if (_activePane == TargetWindow.Top) _activeWebView = null;
             }
             if (_activeBookmarkMiddle == item)
             {
-                MiddleSleepTitle.Text = $"「{item.Title}」はスリープ状態です";
+                MiddleSleepTitle.Text = string.Format(sleepFormat, item.Title);
                 MiddleSleepPlaceholder.Visibility = Visibility.Visible;
                 MiddleEmptyPlaceholder.Visibility = Visibility.Collapsed;
                 if (_activePane == TargetWindow.Middle) _activeWebView = null;
             }
             if (_activeBookmarkBottom == item)
             {
-                BottomSleepTitle.Text = $"「{item.Title}」はスリープ状態です";
+                BottomSleepTitle.Text = string.Format(sleepFormat, item.Title);
                 BottomSleepPlaceholder.Visibility = Visibility.Visible;
                 BottomEmptyPlaceholder.Visibility = Visibility.Collapsed;
                 if (_activePane == TargetWindow.Bottom) _activeWebView = null;
@@ -2545,7 +2505,7 @@ namespace MugiSideBrowser
             {
                 var contextMenu = new System.Windows.Forms.ContextMenuStrip();
 
-                var exitItem = new System.Windows.Forms.ToolStripMenuItem("終了");
+                var exitItem = new System.Windows.Forms.ToolStripMenuItem(GetText("Tray_Exit", "終了"));
                 exitItem.Click += (s, e) => {
                     this.Close();
                 };

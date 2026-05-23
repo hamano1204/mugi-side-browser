@@ -122,39 +122,39 @@
         </Style>
 
         <ContextMenu x:Key="PageToolsMenu" Opened="PageToolsMenu_Opened">
-            <MenuItem Header="ページを更新" Click="Reload_Click">
+            <MenuItem Header="{DynamicResource Menu_ReloadPage}" Click="Reload_Click">
                 <MenuItem.Icon>
                     <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                 </MenuItem.Icon>
             </MenuItem>
-            <MenuItem Header="モバイル表示に切替" Click="UserAgent_Click" Tag="UserAgent">
+            <MenuItem Header="{DynamicResource Menu_SwitchToMobile}" Click="UserAgent_Click" Tag="UserAgent">
                 <MenuItem.Icon>
                     <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                 </MenuItem.Icon>
             </MenuItem>
             <Separator/>
-            <MenuItem Header="このページをブックマーク" Click="Star_Click">
+            <MenuItem Header="{DynamicResource Menu_BookmarkThisPage}" Click="Star_Click">
                 <MenuItem.Icon>
                     <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                 </MenuItem.Icon>
             </MenuItem>
-            <MenuItem Header="URLをコピー" Click="CopyUrl_Click">
+            <MenuItem Header="{DynamicResource Menu_CopyUrl}" Click="CopyUrl_Click">
                 <MenuItem.Icon>
                     <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                 </MenuItem.Icon>
             </MenuItem>
-            <MenuItem Header="標準ブラウザで開く" Click="OpenExternal_Click">
+            <MenuItem Header="{DynamicResource Menu_OpenInDefaultBrowser}" Click="OpenExternal_Click">
                 <MenuItem.Icon>
                     <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                 </MenuItem.Icon>
             </MenuItem>
             <Separator/>
-            <MenuItem Header="初期ページに戻る" Click="ResetToInitialPage_Click" Tag="ResetToInitialPage">
+            <MenuItem Header="{DynamicResource Menu_GoToHomePage}" Click="ResetToInitialPage_Click" Tag="ResetToInitialPage">
                 <MenuItem.Icon>
                     <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                 </MenuItem.Icon>
             </MenuItem>
-            <MenuItem Header="画面を閉じる" Click="CloseActivePane_Click" Tag="CloseActivePane">
+            <MenuItem Header="{DynamicResource Menu_ClosePane}" Click="CloseActivePane_Click" Tag="CloseActivePane">
                 <MenuItem.Icon>
                     <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                 </MenuItem.Icon>
@@ -208,10 +208,10 @@
                     
                     <!-- Right: Window Controls -->
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                        <Button x:Name="ToggleNormalAppBarButton" Content="&#xE90D;" Click="ToggleNormalAppBar_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="サイドバー表示 (AppBar)"/>
-                        <Button x:Name="ToggleAppBarAutoHideButton" Content="" Click="ToggleAppBarAutoHide_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="自動的に隠す (AutoHide)"/>
-                        <Button x:Name="MinimizeButton" Content="" Click="Minimize_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="最小化"/>
-                        <Button Content="" Click="Close_Click" Style="{StaticResource ToolbarButtonStyle}" Foreground="{DynamicResource DangerForeground}" ToolTip="閉じる"/>
+                        <Button x:Name="ToggleNormalAppBarButton" Content="&#xE90D;" Click="ToggleNormalAppBar_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="{DynamicResource Tooltip_SidebarDisplay}"/>
+                        <Button x:Name="ToggleAppBarAutoHideButton" Content="" Click="ToggleAppBarAutoHide_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="{DynamicResource Tooltip_AutoHide}"/>
+                        <Button x:Name="MinimizeButton" Content="" Click="Minimize_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="{DynamicResource Tooltip_Minimize}"/>
+                        <Button Content="" Click="Close_Click" Style="{StaticResource ToolbarButtonStyle}" Foreground="{DynamicResource DangerForeground}" ToolTip="{DynamicResource Tooltip_Close}"/>
                     </StackPanel>
 
                     <!-- Center: Spacer -->
@@ -254,7 +254,7 @@
 
                         <!-- Add Bookmark Button -->
                         <Button Grid.Row="0" Content="" Style="{StaticResource SidebarDockButtonStyle}" 
-                                Click="Star_Click" ToolTip="現在のページをブックマーク" Margin="4,6"/>
+                                Click="Star_Click" ToolTip="{DynamicResource Tooltip_BookmarkCurrentPage}" Margin="4,6"/>
 
                         <!-- Bookmark List -->
                         <ScrollViewer Grid.Row="1" x:Name="BookmarkScrollViewer" 
@@ -316,11 +316,11 @@
                                                  </Border.Style>
                                                  <Border.ContextMenu>
                                                     <ContextMenu Opened="BookmarkContextMenu_Opened">
-                                                        <MenuItem Header="分割画面で開く" Click="OpenInSplitScreen_Click"/>
+                                                        <MenuItem Header="{DynamicResource Menu_OpenInSplitScreen}" Tag="OpenInSplitScreen" Click="OpenInSplitScreen_Click"/>
                                                         <Separator/>
-                                                        <MenuItem Header="タブを終了" Click="ClearBookmarkState_Click"/>
+                                                        <MenuItem Header="{DynamicResource Menu_CloseTab}" Tag="ClearBookmarkState" Click="ClearBookmarkState_Click"/>
                                                         <Separator/>
-                                                        <MenuItem Header="タブを削除" Click="DeleteBookmark_Click"/>
+                                                        <MenuItem Header="{DynamicResource Menu_DeleteTab}" Tag="DeleteBookmark" Click="DeleteBookmark_Click"/>
                                                     </ContextMenu>
                                                 </Border.ContextMenu>
 
@@ -383,7 +383,7 @@
                                                     Visibility="Collapsed">
                                                 <Border.ContextMenu>
                                                     <ContextMenu>
-                                                        <MenuItem Header="削除" Click="DeleteBookmark_Click"/>
+                                                        <MenuItem Header="{DynamicResource Menu_Delete}" Tag="DeleteSeparator" Click="DeleteBookmark_Click"/>
                                                     </ContextMenu>
                                                 </Border.ContextMenu>
                                                 <Border.Style>
@@ -414,25 +414,25 @@
                                 Click="Tools_Click" ToolTip="ツールメニュー" Margin="4,6">
                             <Button.ContextMenu>
                                 <ContextMenu x:Name="ToolsMenu">
-                                    <MenuItem Header="区切り線を追加" Click="AddSeparator_Click">
+                                    <MenuItem Header="{DynamicResource Menu_AddSeparator}" Click="AddSeparator_Click">
                                         <MenuItem.Icon>
                                             <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
                                     <Separator/>
-                                    <MenuItem x:Name="ThemeToggleMenuItem" Header="ライトモードに切り替え" Click="ThemeToggle_Click">
+                                    <MenuItem x:Name="ThemeToggleMenuItem" Header="{DynamicResource Menu_SwitchToLightMode}" Click="ThemeToggle_Click">
                                         <MenuItem.Icon>
                                             <TextBlock x:Name="ThemeIcon" Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
                                     <Separator/>
-                                    <MenuItem x:Name="SidebarPositionToggleMenuItem" Header="お気に入りバーを右に配置" Click="SidebarPositionToggle_Click">
+                                    <MenuItem x:Name="SidebarPositionToggleMenuItem" Header="{DynamicResource Menu_MoveFavoritesRight}" Click="SidebarPositionToggle_Click">
                                         <MenuItem.Icon>
                                             <TextBlock x:Name="SidebarPositionIcon" Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                                         </MenuItem.Icon>
                                     </MenuItem>
                                     <Separator/>
-                                    <MenuItem x:Name="ExternalBrowserMenuItem" Header="新しいウィンドウを標準ブラウザで開く" IsCheckable="True" IsChecked="True" Click="ExternalBrowser_Click">
+                                    <MenuItem x:Name="ExternalBrowserMenuItem" Header="{DynamicResource Menu_OpenNewWindowInDefaultBrowser}" IsCheckable="True" IsChecked="True" Click="ExternalBrowser_Click">
                                         <MenuItem.Icon>
                                             <TextBlock Text="" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"/>
                                         </MenuItem.Icon>
@@ -464,13 +464,13 @@
                         <Border x:Name="TopHeader" Grid.Row="0" Height="24" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" MouseLeftButtonDown="PaneHeader_MouseDown" Tag="Top" Cursor="Hand" AllowDrop="True" MouseMove="PaneHeader_MouseMove" DragOver="PaneHeader_DragOver" DragLeave="PaneHeader_DragLeave" Drop="PaneHeader_Drop">
                             <DockPanel Margin="8,0">
                                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
-                                    <Button x:Name="TopBackButton" Content="&#xE112;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderBack_Click" Tag="Top" ToolTip="戻る" Margin="0,0,2,0"/>
-                                    <Button x:Name="TopForwardButton" Content="&#xE111;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderForward_Click" Tag="Top" ToolTip="進む" Margin="0,0,4,0"/>
-                                    <Button x:Name="TopMenuButton" Content="&#xE712;" Style="{StaticResource HeaderMenuButtonStyle}" Click="HeaderPageTools_Click" Tag="Top" ToolTip="ページ操作"/>
+                                    <Button x:Name="TopBackButton" Content="&#xE112;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderBack_Click" Tag="Top" ToolTip="{DynamicResource Tooltip_Back}" Margin="0,0,2,0"/>
+                                    <Button x:Name="TopForwardButton" Content="&#xE111;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderForward_Click" Tag="Top" ToolTip="{DynamicResource Tooltip_Forward}" Margin="0,0,4,0"/>
+                                    <Button x:Name="TopMenuButton" Content="&#xE712;" Style="{StaticResource HeaderMenuButtonStyle}" Click="HeaderPageTools_Click" Tag="Top" ToolTip="{DynamicResource Tooltip_PageTools}"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <Ellipse x:Name="TopActiveIndicator" Width="6" Height="6" Fill="{DynamicResource SelectionBackground}" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Visible"/>
-                                    <TextBlock x:Name="TopHeaderText" Text="メイン画面" FontSize="11" Foreground="{DynamicResource PrimaryText}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="TopHeaderText" Text="{DynamicResource Title_MainPane}" FontSize="11" Foreground="{DynamicResource PrimaryText}" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </DockPanel>
                         </Border>
@@ -485,11 +485,11 @@
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="48" 
                                                Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
-                                    <TextBlock x:Name="TopSleepTitle" Text="ページはスリープ状態です" FontWeight="SemiBold" FontSize="16" 
+                                    <TextBlock x:Name="TopSleepTitle" Text="{DynamicResource Sleep_Title}" FontWeight="SemiBold" FontSize="16" 
                                                Foreground="{DynamicResource PrimaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,8"/>
-                                    <TextBlock Text="メモリを節約するため、バックグラウンドでの動作を一時停止しました。再開ボタンを押すと復帰します。" 
+                                    <TextBlock Text="{DynamicResource Sleep_Description}" 
                                                FontSize="12" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,20"/>
-                                    <Button Content="ページを再開する" Click="ResumeTop_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+                                    <Button Content="{DynamicResource Sleep_ResumeButton}" Click="ResumeTop_Click" Style="{StaticResource PrimaryButtonStyle}"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -510,13 +510,13 @@
                         <Border x:Name="MiddleHeader" Grid.Row="0" Height="24" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" MouseLeftButtonDown="PaneHeader_MouseDown" Tag="Middle" Cursor="Hand" AllowDrop="True" MouseMove="PaneHeader_MouseMove" DragOver="PaneHeader_DragOver" DragLeave="PaneHeader_DragLeave" Drop="PaneHeader_Drop">
                             <DockPanel Margin="8,0">
                                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
-                                    <Button x:Name="MiddleBackButton" Content="&#xE112;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderBack_Click" Tag="Middle" ToolTip="戻る" Margin="0,0,2,0"/>
-                                    <Button x:Name="MiddleForwardButton" Content="&#xE111;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderForward_Click" Tag="Middle" ToolTip="進む" Margin="0,0,4,0"/>
-                                    <Button x:Name="MiddleMenuButton" Content="&#xE712;" Style="{StaticResource HeaderMenuButtonStyle}" Click="HeaderPageTools_Click" Tag="Middle" ToolTip="ページ操作"/>
+                                    <Button x:Name="MiddleBackButton" Content="&#xE112;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderBack_Click" Tag="Middle" ToolTip="{DynamicResource Tooltip_Back}" Margin="0,0,2,0"/>
+                                    <Button x:Name="MiddleForwardButton" Content="&#xE111;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderForward_Click" Tag="Middle" ToolTip="{DynamicResource Tooltip_Forward}" Margin="0,0,4,0"/>
+                                    <Button x:Name="MiddleMenuButton" Content="&#xE712;" Style="{StaticResource HeaderMenuButtonStyle}" Click="HeaderPageTools_Click" Tag="Middle" ToolTip="{DynamicResource Tooltip_PageTools}"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <Ellipse x:Name="MiddleActiveIndicator" Width="6" Height="6" Fill="{DynamicResource SelectionBackground}" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Collapsed"/>
-                                    <TextBlock x:Name="MiddleHeaderText" Text="サブ画面 (中)" FontSize="11" Foreground="{DynamicResource SecondaryText}" FontWeight="Normal" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="MiddleHeaderText" Text="{DynamicResource Title_SubPaneMiddle}" FontSize="11" Foreground="{DynamicResource SecondaryText}" FontWeight="Normal" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </DockPanel>
                         </Border>
@@ -531,11 +531,11 @@
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="48" 
                                                Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
-                                    <TextBlock x:Name="MiddleSleepTitle" Text="ページはスリープ状態です" FontWeight="SemiBold" FontSize="16" 
+                                    <TextBlock x:Name="MiddleSleepTitle" Text="{DynamicResource Sleep_Title}" FontWeight="SemiBold" FontSize="16" 
                                                Foreground="{DynamicResource PrimaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,8"/>
-                                    <TextBlock Text="メモリを節約するため、バックグラウンドでの動作を一時停止しました。再開ボタンを押すと復帰します。" 
+                                    <TextBlock Text="{DynamicResource Sleep_Description}" 
                                                FontSize="12" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,20"/>
-                                    <Button Content="ページを再開する" Click="ResumeMiddle_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+                                    <Button Content="{DynamicResource Sleep_ResumeButton}" Click="ResumeMiddle_Click" Style="{StaticResource PrimaryButtonStyle}"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -548,9 +548,9 @@
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="48" 
                                                Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
-                                    <TextBlock Text="分割ウィンドウ (中)" FontWeight="SemiBold" FontSize="16" 
+                                    <TextBlock Text="{DynamicResource Title_SplitPaneMiddle}" FontWeight="SemiBold" FontSize="16" 
                                                Foreground="{DynamicResource PrimaryText}" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,0,0,8"/>
-                                    <TextBlock Text="お気に入りをここに表示できます。&#x0a;サイドバーのお気に入りを右クリックして「分割画面で開く」を選択してください。" 
+                                    <TextBlock Text="{DynamicResource Empty_SplitPaneDescription}" 
                                                FontSize="12" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,0"/>
                                 </StackPanel>
                             </Border>
@@ -573,13 +573,13 @@
                         <Border x:Name="BottomHeader" Grid.Row="0" Height="24" Background="{DynamicResource TitleBarBackground}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" MouseLeftButtonDown="PaneHeader_MouseDown" Tag="Bottom" Cursor="Hand" AllowDrop="True" MouseMove="PaneHeader_MouseMove" DragOver="PaneHeader_DragOver" DragLeave="PaneHeader_DragLeave" Drop="PaneHeader_Drop">
                             <DockPanel Margin="8,0">
                                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
-                                    <Button x:Name="BottomBackButton" Content="&#xE112;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderBack_Click" Tag="Bottom" ToolTip="戻る" Margin="0,0,2,0"/>
-                                    <Button x:Name="BottomForwardButton" Content="&#xE111;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderForward_Click" Tag="Bottom" ToolTip="進む" Margin="0,0,4,0"/>
-                                    <Button x:Name="BottomMenuButton" Content="&#xE712;" Style="{StaticResource HeaderMenuButtonStyle}" Click="HeaderPageTools_Click" Tag="Bottom" ToolTip="ページ操作"/>
+                                    <Button x:Name="BottomBackButton" Content="&#xE112;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderBack_Click" Tag="Bottom" ToolTip="{DynamicResource Tooltip_Back}" Margin="0,0,2,0"/>
+                                    <Button x:Name="BottomForwardButton" Content="&#xE111;" Style="{StaticResource HeaderNavButtonStyle}" Click="HeaderForward_Click" Tag="Bottom" ToolTip="{DynamicResource Tooltip_Forward}" Margin="0,0,4,0"/>
+                                    <Button x:Name="BottomMenuButton" Content="&#xE712;" Style="{StaticResource HeaderMenuButtonStyle}" Click="HeaderPageTools_Click" Tag="Bottom" ToolTip="{DynamicResource Tooltip_PageTools}"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <Ellipse x:Name="BottomActiveIndicator" Width="6" Height="6" Fill="{DynamicResource SelectionBackground}" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Collapsed"/>
-                                    <TextBlock x:Name="BottomHeaderText" Text="サブ画面 (下)" FontSize="11" Foreground="{DynamicResource SecondaryText}" FontWeight="Normal" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="BottomHeaderText" Text="{DynamicResource Title_SubPaneBottom}" FontSize="11" Foreground="{DynamicResource SecondaryText}" FontWeight="Normal" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </DockPanel>
                         </Border>
@@ -594,11 +594,11 @@
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="48" 
                                                Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
-                                    <TextBlock x:Name="BottomSleepTitle" Text="ページはスリープ状態です" FontWeight="SemiBold" FontSize="16" 
+                                    <TextBlock x:Name="BottomSleepTitle" Text="{DynamicResource Sleep_Title}" FontWeight="SemiBold" FontSize="16" 
                                                Foreground="{DynamicResource PrimaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,8"/>
-                                    <TextBlock Text="メモリを節約するため、バックグラウンドでの動作を一時停止しました。再開ボタンを押すと復帰します。" 
+                                    <TextBlock Text="{DynamicResource Sleep_Description}" 
                                                FontSize="12" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,20"/>
-                                    <Button Content="ページを再開する" Click="ResumeBottom_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+                                    <Button Content="{DynamicResource Sleep_ResumeButton}" Click="ResumeBottom_Click" Style="{StaticResource PrimaryButtonStyle}"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -611,9 +611,9 @@
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="48" 
                                                Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
-                                    <TextBlock Text="分割ウィンドウ (下)" FontWeight="SemiBold" FontSize="16" 
+                                    <TextBlock Text="{DynamicResource Title_SplitPaneBottom}" FontWeight="SemiBold" FontSize="16" 
                                                Foreground="{DynamicResource PrimaryText}" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,0,0,8"/>
-                                    <TextBlock Text="お気に入りをここに表示できます。&#x0a;サイドバーのお気に入りを右クリックして「分割画面で開く」を選択してください。" 
+                                    <TextBlock Text="{DynamicResource Empty_SplitPaneDescription}" 
                                                FontSize="12" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,0"/>
                                 </StackPanel>
                             </Border>

@@ -1,0 +1,73 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=mscorlib">
+    <!-- Main Window Title & Layout Modes -->
+    <system:String x:Key="Title_MainPane">Main Pane</system:String>
+    <system:String x:Key="Title_SubPaneMiddle">Sub Pane (Middle)</system:String>
+    <system:String x:Key="Title_SubPaneBottom">Sub Pane (Bottom)</system:String>
+    <system:String x:Key="Title_SplitPaneMiddle">Split Pane (Middle)</system:String>
+    <system:String x:Key="Title_SplitPaneBottom">Split Pane (Bottom)</system:String>
+    
+    <system:String x:Key="Mode_AppBar">Docked</system:String>
+    <system:String x:Key="Mode_AutoHide">Auto-Hide</system:String>
+    <system:String x:Key="Mode_Floating">Floating</system:String>
+    <system:String x:Key="Mode_Unknown">Unknown</system:String>
+
+    <!-- Context Menu Items -->
+    <system:String x:Key="Menu_ReloadPage">Reload Page</system:String>
+    <system:String x:Key="Menu_SwitchToMobile">Switch to Mobile View</system:String>
+    <system:String x:Key="Menu_SwitchToDesktop">Switch to Desktop View</system:String>
+    <system:String x:Key="Menu_BookmarkThisPage">Bookmark this page</system:String>
+    <system:String x:Key="Menu_CopyUrl">Copy URL</system:String>
+    <system:String x:Key="Menu_OpenInDefaultBrowser">Open in Default Browser</system:String>
+    <system:String x:Key="Menu_GoToHomePage">Go back to home page</system:String>
+    <system:String x:Key="Menu_ClosePane">Close Screen</system:String>
+    <system:String x:Key="Menu_OpenInSplitScreen">Open in Split Screen</system:String>
+    <system:String x:Key="Menu_CloseTab">Close Tab</system:String>
+    <system:String x:Key="Menu_DeleteTab">Delete Tab</system:String>
+    <system:String x:Key="Menu_Delete">Delete</system:String>
+
+    <!-- Tools Menu Items -->
+    <system:String x:Key="Menu_AddSeparator">Add Separator</system:String>
+    <system:String x:Key="Menu_SwitchToLightMode">Switch to Light Mode</system:String>
+    <system:String x:Key="Menu_SwitchToDarkMode">Switch to Dark Mode</system:String>
+    <system:String x:Key="Menu_MoveFavoritesLeft">Move Favorites Bar to Left</system:String>
+    <system:String x:Key="Menu_MoveFavoritesRight">Move Favorites Bar to Right</system:String>
+    <system:String x:Key="Menu_OpenNewWindowInDefaultBrowser">Open new windows in default browser</system:String>
+
+    <!-- Sleep Placeholders -->
+    <system:String x:Key="Sleep_Title">Page is sleeping</system:String>
+    <system:String x:Key="Sleep_TitleFormat">"{0}" is sleeping</system:String>
+    <system:String x:Key="Sleep_Description">This page is sleeping to save memory. Press the button below to resume.</system:String>
+    <system:String x:Key="Sleep_ResumeButton">Resume Page</system:String>
+    
+    <!-- Empty Split Pane Placeholders -->
+    <system:String x:Key="Empty_SplitPaneDescription">You can display your favorites here.&#x0a;Right-click a favorite in the sidebar and select 'Open in Split Screen'.</system:String>
+
+    <!-- Window Controls & Tooltips -->
+    <system:String x:Key="Tooltip_Minimize">Minimize</system:String>
+    <system:String x:Key="Tooltip_Close">Close</system:String>
+    <system:String x:Key="Tooltip_BookmarkCurrentPage">Bookmark current page</system:String>
+    <system:String x:Key="Tooltip_Back">Back</system:String>
+    <system:String x:Key="Tooltip_Forward">Forward</system:String>
+    <system:String x:Key="Tooltip_PageTools">Page tools</system:String>
+    <system:String x:Key="Tooltip_ToolsMenu">Tools menu</system:String>
+    <system:String x:Key="Tooltip_SidebarDisplay">Sidebar Display (AppBar)</system:String>
+    <system:String x:Key="Tooltip_FloatingWindow">Floating Window</system:String>
+    <system:String x:Key="Tooltip_AutoHide">Auto Hide (AutoHide)</system:String>
+    <system:String x:Key="Tooltip_AlwaysShow">Always Show (AppBar)</system:String>
+
+    <!-- Messagebox & Dialog Strings -->
+    <system:String x:Key="Msg_FatalError">A fatal error has occurred:&#x0a;&#x0a;{0}&#x0a;&#x0a;{1}</system:String>
+    <system:String x:Key="Msg_ErrorTitle">Error</system:String>
+    <system:String x:Key="Msg_AddBookmarkFailed">Failed to add bookmark: {0}</system:String>
+    <system:String x:Key="Msg_CopyFailed">Failed to copy: {0}</system:String>
+    <system:String x:Key="Msg_OpenExternalFailed">Failed to open in default browser: {0}</system:String>
+    <system:String x:Key="Msg_MoveBookmarkFailed">Failed to move bookmark: {0}</system:String>
+    <system:String x:Key="Msg_DeleteBookmarkFailed">Failed to delete bookmark: {0}</system:String>
+    <system:String x:Key="Msg_ConfirmDelete">Are you sure you want to delete "{0}"?</system:String>
+    <system:String x:Key="Msg_ConfirmDeleteTitle">Confirm Delete</system:String>
+    
+    <!-- System Tray -->
+    <system:String x:Key="Tray_Exit">Exit</system:String>
+</ResourceDictionary>
