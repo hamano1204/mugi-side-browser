@@ -1,0 +1,124 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^dotnet sln add WinUI3\\\\MugiSideBrowser\\.WinUI3\\.csproj ; dotnet build WinUI3\\\\MugiSideBrowser\\.WinUI3\\.csproj$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet nuget search Microsoft\\.WinUI --prerelease --take 10$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet build WinUI3\\\\MugiSideBrowser\\.WinUI3\\.csproj$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet --info$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet workload list$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet workload search winui$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet workload search --help$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet workload install windowsdesktop --skip-manifest-update$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet workload search windows$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet workload search appsdk$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet --list-sdks ; echo --- ; dotnet --list-runtimes ; echo --- ; dotnet workload list ; echo --- ; dotnet workload search desktop$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet workload search winui ; dotnet workload search \"windows app\" ; dotnet workload search windowsappsdk ; dotnet workload search microsoft-windows-appsdk$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet build WinUI3\\\\MugiSideBrowser\\.WinUI3\\.csproj -v:minimal$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet build WinUI3\\\\MugiSideBrowser\\.WinUI3\\.csproj -f net9\\.0-windows10\\.0\\.19041\\.0 -v:minimal$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet build WinUI3\\\\MugiSideBrowser\\.WinUI3\\.csproj -p:UseWinUI=false -p:RuntimeIdentifier=win10-x64 -v:minimal$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-ChildItem 'C:\\\\Program Files\\\\dotnet\\\\packs' -Recurse -Include '\\*Runtime\\*','\\*Framework\\*' -ErrorAction SilentlyContinue \\| Select-Object -First 20 \\| Format-Table FullName\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet new console -n RidTestApp -o RidTestApp --framework net8\\.0-windows --force ; cd RidTestApp ; dotnet build -r win10-x64 -v:minimal$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet new --list \\| findstr /i winui$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet workload restore$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet workload list ; dotnet workload search winui ; dotnet workload search windowsapp$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet workload list ; dotnet workload search winui ; dotnet workload search windowsapp ; dotnet new --list \\| findstr /i winui$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-Command dotnet \\| Format-List -Property Path; dotnet workload list\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-ChildItem 'C:\\\\Program Files\\\\dotnet\\\\sdk-manifests\\\\10\\.0\\.202' -Directory \\| Select-Object Name; Get-ChildItem 'C:\\\\Program Files\\\\dotnet\\\\packs' -Directory \\| Select-Object Name \\| Sort-Object Name\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-ChildItem 'C:\\\\Program Files\\\\dotnet\\\\packs' -Directory \\| Where-Object Name -match 'WindowsAppSDK\\|WinUI\\|WindowsDesktop\\|WindowsApp\\|Microsoft\\.Windows' \\| Select-Object Name, FullName \\| Format-Table -AutoSize\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet build MugiSideBrowser\\.csproj -v:minimal$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-ChildItem 'C:\\\\Program Files\\\\dotnet\\\\sdk\\\\10\\.0\\.202' -Recurse -Include '\\*runtime\\.json','\\*rid\\*' -File \\| Select-Object FullName \\| Format-Table -AutoSize\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet new console -n RidTestApp -o RidTestApp --framework net10\\.0 --force ; cd RidTestApp ; dotnet build -r win10-x64 -v:minimal$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-ChildItem 'C:\\\\Program Files\\\\dotnet\\\\packs' -Recurse -Include 'runtime\\.json','runtime\\.\\*\\.json','\\*\\.rid','\\*\\.graph' -File \\| Select-Object FullName \\| Format-Table -AutoSize\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet new console -n RidTestApp -o RidTestApp --framework net10\\.0 --force ; cd RidTestApp ; dotnet build -v:minimal ; dotnet build -r win-x64 -v:minimal$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet build WinUI3\\\\MugiSideBrowser\\.WinUI3\\.csproj -p:TargetFramework=net8\\.0-windows -v:minimal$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

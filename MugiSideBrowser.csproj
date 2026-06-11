@@ -8,7 +8,7 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>app_icon.ico</ApplicationIcon>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +16,13 @@
     <Resource Include="globe.png" />
     <Resource Include="app_icon.ico" />
     <Resource Include="app_icon.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="WinUI3\**\*.cs" />
+    <Page Remove="WinUI3\**\*.xaml" />
+    <EmbeddedResource Remove="WinUI3\**\*" />
+    <None Remove="WinUI3\**\*" />
   </ItemGroup>
 
 </Project>

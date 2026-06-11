@@ -1,0 +1,13 @@
+<Window
+    x:Class="MugiSideBrowser.WinUI3.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:wv2="using:Microsoft.Web.WebView2.WinUI3"
+    Title="MugiSideBrowser WinUI3"
+    Width="400"
+    Height="800">
+
+    <Grid>
+        <wv2:WebView2 x:Name="WebView" Source="https://www.google.com" />
+    </Grid>
+</Window>
