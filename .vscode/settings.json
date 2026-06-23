@@ -119,6 +119,102 @@
         "/^dotnet build WinUI3\\\\MugiSideBrowser\\.WinUI3\\.csproj -p:TargetFramework=net8\\.0-windows -v:minimal$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^dotnet --info ; dotnet workload list ; dotnet build WinUI3\\\\MugiSideBrowser\\.WinUI3\\.csproj -v:minimal$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-ChildItem 'C:\\\\Program Files\\\\dotnet\\\\packs' -Directory \\| Where-Object \\{ \\$_\\.Name -match 'Windows\\|win10\\|WinUI\\|WindowsAppSDK\\|Microsoft\\.Windows' \\} \\| Select-Object Name \\| Sort-Object; Write-Host '---'; if \\(Test-Path 'C:\\\\Program Files\\\\dotnet\\\\sdk-manifests\\\\10\\.0\\.301'\\) \\{ Get-ChildItem 'C:\\\\Program Files\\\\dotnet\\\\sdk-manifests\\\\10\\.0\\.301' -Directory \\| Select-Object Name \\| Sort-Object \\} else \\{ Write-Host 'sdk-manifests\\\\10\\.0\\.301 missing' \\}\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-ChildItem 'C:\\\\Program Files\\\\dotnet\\\\packs' -Directory \\| Where-Object \\{ \\$_\\.Name -match 'Windows\\|win10\\|WinUI\\|WindowsAppSDK\\|Microsoft\\.Windows' \\} \\| Select-Object -Property Name; Write-Host '---'; if \\(Test-Path 'C:\\\\Program Files\\\\dotnet\\\\sdk-manifests\\\\10\\.0\\.301'\\) \\{ Get-ChildItem 'C:\\\\Program Files\\\\dotnet\\\\sdk-manifests\\\\10\\.0\\.301' -Directory \\| Select-Object -Property Name \\} else \\{ Write-Host 'sdk-manifests 10\\.0\\.301 missing' \\} ; Write-Host '---'; if \\(Test-Path 'C:\\\\Program Files \\(x86\\)\\\\Windows Kits\\\\10'\\) \\{ Get-ChildItem 'C:\\\\Program Files \\(x86\\)\\\\Windows Kits\\\\10' -Directory \\| Select-Object -Property Name \\} else \\{ Write-Host 'Windows Kits 10 missing' \\}\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-ChildItem 'C:\\\\Program Files\\\\dotnet\\\\packs' -Directory \\| Where-Object Name -match 'Windows\\|win10\\|WinUI\\|WindowsAppSDK\\|Microsoft\\.Windows' \\| Select-Object -Property Name; Write-Host '---'; if \\(Test-Path 'C:\\\\Program Files\\\\dotnet\\\\sdk-manifests\\\\10\\.0\\.301'\\) \\{ Get-ChildItem 'C:\\\\Program Files\\\\dotnet\\\\sdk-manifests\\\\10\\.0\\.301' -Directory \\| Select-Object -Property Name \\} else \\{ Write-Host 'sdk-manifests 10\\.0\\.301 missing' \\}; Write-Host '---'; if \\(Test-Path 'C:\\\\Program Files \\(x86\\)\\\\Windows Kits\\\\10'\\) \\{ Get-ChildItem 'C:\\\\Program Files \\(x86\\)\\\\Windows Kits\\\\10' -Directory \\| Select-Object -Property Name \\} else \\{ Write-Host 'Windows Kits 10 missing' \\}\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet --info; Write-Host '--- workload'; dotnet workload list; Write-Host '--- build probe2'; dotnet build WinUIProbe2\\.csproj -v:minimal; Write-Host '--- build probe3'; dotnet build WinUIProbe3\\.csproj -v:minimal$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet new --list \\| findstr /i winui ; true$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cmd /c \"dotnet new --list \\| findstr /i winui\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-ChildItem -Path \\$env:USERPROFILE\\\\\\.nuget\\\\packages -Directory \\| Where-Object Name -like 'Microsoft\\.Web\\.WebView2\\*' \\| Select-Object -Property Name, FullName \\| Out-String\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-ChildItem -Path \\$env:USERPROFILE\\\\\\.nuget\\\\packages\\\\microsoft\\.web\\.webview2\\\\1\\.0\\.3912\\.50 -Recurse \\| Where-Object \\{ \\$_\\.FullName -match '\\\\\\\\Microsoft\\.Web\\.WebView2\\.\\*\\(WinUI\\|Wpf\\|WinForms\\|net5\\\\\\.0\\)' \\} \\| Select-Object -Property FullName \\| Out-String\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-ChildItem 'C:\\\\Program Files\\\\dotnet\\\\packs' -Directory \\| Where-Object \\{ \\$_\\.Name -match 'WindowsAppSDK\\|WindowsDesktop\\.App\\.Ref\\|Microsoft\\.WinUI\\|Microsoft\\.WindowsAppSDK\\|Microsoft\\.NETCore\\.App\\.Ref\\|Microsoft\\.WindowsDesktop\\.App\\.Ref' \\} \\| Select-Object Name \\| Out-String\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-ChildItem 'C:\\\\Program Files\\\\dotnet\\\\packs' -Directory \\| Where-Object \\{ \\$_\\.Name -match 'Windows\\|win10\\|WinUI\\|WindowsAppSDK\\|Microsoft\\.Windows' \\} \\| Select-Object -Property Name; Write-Host '---'; if \\(Test-Path 'C:\\\\Program Files\\\\dotnet\\\\sdk-manifests\\\\10\\.0\\.301'\\) \\{ Get-ChildItem 'C:\\\\Program Files\\\\dotnet\\\\sdk-manifests\\\\10\\.0\\.301' -Directory \\| Select-Object -Property Name \\} else \\{ Write-Host 'sdk-manifests 10\\.0\\.301 missing' \\}; Write-Host '---'; if \\(Test-Path 'C:\\\\Program Files \\(x86\\)\\\\Windows Kits\\\\10'\\) \\{ Get-ChildItem 'C:\\\\Program Files \\(x86\\)\\\\Windows Kits\\\\10' -Directory \\| Select-Object -Property Name \\} else \\{ Write-Host 'Windows Kits 10 missing' \\}\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cmd /c \"dir /b \"C:\\\\Program Files\\\\dotnet\\\\packs\" \\| findstr /i \"WindowsAppSDK WinUI WindowsDesktop\\.App\\.Ref\"\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cmd /c \"dotnet workload search windows\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-ChildItem -Path \\$env:USERPROFILE\\\\\\.nuget\\\\packages\\\\microsoft\\.web\\.webview2\\\\1\\.0\\.3912\\.50 -Directory \\| Select-Object Name\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet nuget list package Microsoft\\.Web\\.WebView2\\.WinUI --source nuget\\.org --take 20$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cmd /c \"dir /b \"C:\\\\Program Files\\\\dotnet\\\\sdk-manifests\\\\10\\.0\\.301\"\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^dotnet nuget search Microsoft\\.Web\\.WebView2\\.WinUI --take 20$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"try \\{ \\$data = Invoke-RestMethod 'https://api\\.nuget\\.org/v3/registration5-gz-semver2/microsoft\\.web\\.webview2\\.winui/index\\.json'; \\$data\\.items\\[0\\]\\.items \\| Select-Object -Last 5 \\| ForEach-Object \\{ \\$_\\.catalogEntry\\.version \\} \\} catch \\{ Write-Host 'FAILED:' \\$_\\.Exception\\.Message \\}\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"& \\{Get-ChildItem 'C:\\\\Program Files \\(x86\\)\\\\Windows Kits\\\\10\\\\Include' -Directory \\| Select-Object -ExpandProperty Name\\}\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-ChildItem -Path \"\\$env:USERPROFILE\\\\\\.nuget\\\\packages\\\\microsoft\\.web\\.webview2\\\\1\\.0\\.3912\\.50\\\\lib\" -Directory \\| Select-Object -ExpandProperty Name; Write-Host '---'; Get-ChildItem -Path \"\\$env:USERPROFILE\\\\\\.nuget\\\\packages\\\\microsoft\\.web\\.webview2\\\\1\\.0\\.3912\\.50\\\\lib\\\\net5\\.0-windows10\\.0\\.17763\\.0\" -File \\| Select-Object -ExpandProperty Name\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-Content WinUI3\\\\obj\\\\Debug\\\\net10\\.0-windows10\\.0\\.22621\\.0\\\\project\\.assets\\.json \\| Select-String 'Microsoft\\.WindowsAppSDK\\|Microsoft\\.UI\\.Xaml\\|Microsoft\\.WinUI' \\| Select-Object -First 40 \\| Out-String\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Get-ChildItem -Path \\$env:USERPROFILE\\\\\\.nuget\\\\packages\\\\microsoft\\.windowsappsdk\\\\1\\.4\\.230822000 -Recurse \\| Where-Object \\{ \\$_\\.FullName -match 'msbuild\\|targets\\|props\\|dll' \\} \\| Select-Object -First 50 \\| ForEach-Object \\{ \\$_\\.FullName \\} \\| Out-String\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cmd /c \"dir /b WinUI3\\\\obj\\\\Debug\\\\net10\\.0-windows10\\.0\\.22621\\.0 2>NUL \\|\\| echo NOOBJ\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cmd /c \"dir /b /s WinUI3\\\\obj\\\\Debug\\\\net10\\.0-windows10\\.0\\.22621\\.0\\\\ref\\\\\\*Microsoft\\.UI\\.Xaml\\* 2>NUL \\|\\| echo NONE\"$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }
