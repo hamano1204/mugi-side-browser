@@ -39,8 +39,9 @@ Minimizes RAM consumption even when opening multiple panes and bookmarks.
 ### 🛠 System Requirements
 
 *   **OS**: Windows 10 / 11
-*   **Framework**: .NET 8 / 9 (WPF)
+*   **Framework**: .NET 10 (WPF)
 *   **Browser Engine**: Microsoft Edge WebView2
+*   **Distribution**: Single-file executable (Self-contained, ReadyToRun)
 
 ### 📄 License
 
@@ -91,8 +92,9 @@ Windowsのデスクトップ端に常駐し、作業スペースを圧迫せず�
 ### 🛠 動作環境
 
 *   **OS**: Windows 10 / 11
-*   **フレームワーク**: .NET 8 / 9 (WPF)
+*   **フレームワーク**: .NET 10 (WPF)
 *   **ブラウザエンジン**: Microsoft Edge WebView2
+*   **配布形式**: シングルファイル実行可能（Self-contained, ReadyToRun）
 
 ### 📄 ライセンスについて
 

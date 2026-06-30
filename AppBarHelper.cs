@@ -17,7 +17,7 @@ namespace MugiSideBrowser
         public AppBarHelper(Window window)
         {
             _window = window;
-            _uCallbackMessage = (int)NativeMethods.RegisterWindowMessage("AppBarMessage");
+            _uCallbackMessage = (int)NativeMethods.RegisterWindowMessage(Constants.AppBarMessageName);
         }
 
         public void Register()

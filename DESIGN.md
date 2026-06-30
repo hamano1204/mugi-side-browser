@@ -7,13 +7,14 @@
 
 ## 2. システム構成・使用技術
 
-- **フレームワーク**: .NET 8/9 (WPF / Windows Presentation Foundation)
+- **フレームワーク**: .NET 10 (WPF / Windows Presentation Foundation)
 - **ブラウザエンジン**: Microsoft Edge WebView2 (Chromium ベース)
 - **デスクトップ統合**: Win32 API (`SHAppBarMessage`, `MonitorFromWindow`, `MoveWindow` 等) を使用した Appbar 実装
 - **データ保存**: `%APPDATA%\MugiSideBrowser\` 配下に JSON 形式で保存
   - お気に入りデータ: `bookmarks.json`（二重書き込み防止セマフォ制御、テンポラリファイルを介したアトミック保存）
   - ユーザー設定データ: `settings.json`（テーマや配置情報）
 - **開発言語**: C# 12 / XAML
+- **配布形式**: シングルファイル配布対応（Self-contained, Single-file, ReadyToRun）
 
 ---
 
@@ -88,7 +89,29 @@
 
 ---
 
-## 5. デスクトップ統合とその他の便利機能
+## 5. コード品質と保守性
+
+### 5.1 コード改善施策
+- **マジックナンバーの定数化**: 画面サイズ、アニメーション時間、トリガーゾーン等の値を定数として定義し、可読性と保守性を向上
+- **エラーハンドリングの強化**: 空のcatchブロックにデバッグログ出力を追加し、例外の追跡を容易化
+- **リソース管理の改善**: システムトレイアイコンのリソースリークを防止
+- **メソッド分割**: 長いメソッド（ShowBookmarkWebView等）を複数のヘルパーメソッドに分割し、可読性とテスト容易性を向上
+- **重複コードの削減**: UI更新ロジックを共通化し、保守性を改善
+
+### 5.2 定数定義
+- `TriggerZonePixel = 5`: 自動隠しモードのトリガーゾーン幅
+- `OffScreenPosition = -30000`: AppBar登録時の一時的な画面外位置
+- `MinPaneHeight = 200`: ペインの最小高さ
+- `MinPaneWidth = 300`: ペインの最小幅
+- `MaxPaneWidth = 800`: ペインの最大幅
+- `WorkAreaMargin = 80`: 自由配置モードでの作業領域マージン
+- `TopMargin = 20`: 自由配置モードでの上部マージン
+- `AutoHideTimerIntervalMs = 100`: 自動隠しタイマーの間隔
+- `AnimationDurationMs = 200`: スライドイン/アウトアニメーションの時間
+
+---
+
+## 6. デスクトップ統合とその他の便利機能
 
 - **多重起動防止＆ウィンドウ復元**
   - アプリの多重起動を防止し、2番目のインスタンスが起動された際には独自のウィンドウメッセージ (`MugiSideBrowser_ShowWindowMessage`) を送信して、すでに起動している既存のサイドバーウィンドウをフォアグラウンドに復元します。

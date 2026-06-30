@@ -8,7 +8,7 @@ namespace MugiSideBrowser
     public partial class App : System.Windows.Application
     {
         private static Mutex? _mutex;
-        private static readonly uint ShowWindowMessage = NativeMethods.RegisterWindowMessage("MugiSideBrowser_ShowWindowMessage");
+        private static readonly uint ShowWindowMessage = NativeMethods.RegisterWindowMessage(Constants.ShowWindowMessageName);
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -16,7 +16,7 @@ namespace MugiSideBrowser
 
             // Mutex による多重起動防止
             bool createdNew;
-            _mutex = new Mutex(true, "Global\\MugiSideBrowser_SingleInstanceMutex", out createdNew);
+            _mutex = new Mutex(true, Constants.SingleInstanceMutexName, out createdNew);
 
             if (!createdNew)
             {

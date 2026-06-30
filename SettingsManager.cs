@@ -41,7 +41,10 @@ namespace MugiSideBrowser
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SettingsManager Load failed: {ex.Message}");
+            }
             _settings = new UserSettings();
         }
 
@@ -56,7 +59,10 @@ namespace MugiSideBrowser
                 string json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(FilePath, json);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SettingsManager Save failed: {ex.Message}");
+            }
         }
     }
 }

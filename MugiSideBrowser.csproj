@@ -18,27 +18,5 @@
     <Resource Include="app_icon.png" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Remove="WinUI3\**\*.cs" />
-    <Page Remove="WinUI3\**\*.xaml" />
-    <EmbeddedResource Remove="WinUI3\**\*" />
-    <None Remove="WinUI3\**\*" />
-
-    <Compile Remove="RidTestApp\**\*.cs" />
-    <EmbeddedResource Remove="RidTestApp\**\*" />
-    <None Remove="RidTestApp\**\*" />
-
-    <Compile Remove="WinUIProbe3\**\*.cs" />
-    <EmbeddedResource Remove="WinUIProbe3\**\*" />
-    <None Remove="WinUIProbe3\**\*" />
-
-    <Compile Remove="WinUIWorkaround\**\*.cs" />
-    <EmbeddedResource Remove="WinUIWorkaround\**\*" />
-    <None Remove="WinUIWorkaround\**\*" />
-
-    <Compile Remove="WinUIWorkaround2\**\*.cs" />
-    <EmbeddedResource Remove="WinUIWorkaround2\**\*" />
-    <None Remove="WinUIWorkaround2\**\*" />
-  </ItemGroup>
 
 </Project>
